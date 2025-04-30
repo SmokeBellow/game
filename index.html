@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MurMyak Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background-color: #e0e0e0;
+    }
+
+    #murmyak-screen, #character-select, #gamename-screen, #ob-igre-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      text-align: center;
+    }
+
+    #murmyak-screen {
+      background-color: black;
+      color: white;
+      font-size: 40px;
+      transition: opacity 1s;
+    }
+
+    #gamename-screen {
+      background-color: white;
+      color: black;
+      transition: opacity 1s;
+      opacity: 0;
+    }
+
+    #gamename-screen h1 {
+      font-size: 40px;
+      font-family: Arial;
+      transition: none;
+      position: absolute;
+      top: 200px;
+      bottom: 50px;
+      left: 50px;
+      right: 50px;
+      margin: 0;
+    }
+
+    #sherstiny-text {
+      font-size: 120px;
+      font-weight: bold;
+      transition: font-family 0.15s;
+    }
+
+    #character-select {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #character-select button {
+      margin: 10px;
+      font-size: 20px;
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+
+    #character-select button:hover {
+      background-color: #45a049;
+    }
+
+    #character-select img {
+      margin-top: 20px;
+      width: 150px;
+      height: 150px;
+      object-fit: contain;
+    }
+
+    #ob-igre-screen {
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      font-size: 24px;
+      display: none;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      transition: opacity 1s;
+      padding: 20px;
+    }
+
+    #ob-igre-image {
+      width: 450px;
+      height: auto;
+      margin-left: 200px;
+    }
+
+    #ob-igre-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-right: 300px;
+      max-width: 50%;
+    }
+
+    #ob-igre-content p {
+      margin: 10px 0;
+      line-height: 1.5;
+      opacity: 0;
+      transition: opacity 0.5s ease-in;
+      text-align: center;
+    }
+
+    #ob-igre-content p.visible {
+      opacity: 1;
+    }
+
+    #new-game-button {
+      margin-top: 20px;
+      font-size: 20px;
+      padding: 10px 20px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      align-self: center;
+    }
+
+    #new-game-button:hover {
+      background-color: #45a049;
+    }
+
+    #level-text {
+      font-size: 20px;
+      font-weight: bold;
+      position: fixed;
+      top: 40px;
+      left: 10px;
+      color: #333;
+    }
+
+    #wool-count {
+      font-size: 20px;
+      color: #333;
+      position: fixed;
+      top: 10px;
+      left: 10px;
+    }
+
+    #message-text {
+      font-size: 30px;
+      color: #333;
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: opacity 3s;
+    }
+
+    #cat-fact {
+      font-size: 20px;
+      color: #555;
+      position: absolute;
+      top: 55%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: opacity 3s;
+      max-width: 80%;
+      text-align: center;
+    }
+
+    #intro-text {
+      font-size: 20px;
+      margin-top: 20px;
+      color: black;
+    }
+
+    #sound-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      z-index: 1000;
+      outline: none;
+    }
+
+    #sound-toggle img {
+      width: 40px;
+      height: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Экран MurMyak -->
+  <div id="murmyak-screen">
+    <div>
+      <h1>MurMyak Games</h1>
+      <img src="images/lapka.png" alt="Lapka" id="lapka-image" style="width: 150px; height: 150px;"/>
+    </div>
+  </div>
+
+  <!-- Экран GameName -->
+  <div id="gamename-screen">
+    <div>
+      <h1>У вас накопились</h1>
+      <h2 id="sherstiny-text">ШЕРСТИНЫ</h2>
+    </div>
+  </div>
+
+  <!-- Экран выбора персонажа -->
+  <div id="character-select">
+    <h2>С приходом весны по всему дому появляются странные серые комочки</h2>
+    <h3>Собери их все :)</h3>
+    <div style="display: flex; justify-content: center;">
+      <button onclick="selectCharacter('masha')" style="margin-right: 60px;">Маша</button>
+      <button onclick="selectCharacter('anton')">Антон</button>
+    </div>
+    <div style="display: flex; justify-content: center; margin-top: 20px;">
+      <img id="masha-image" src="images/masha.png" alt="Masha" style="display: none; width: 150px; height: 150px;margin-right: 20px;" />
+      <img id="anton-image" src="images/anton.png" alt="Anton" style="display: none; width: 150px; height: 150px;" />
+    </div>
+  </div>
+
+  <!-- Экран "Об игре" -->
+  <div id="ob-igre-screen">
+    <img id="ob-igre-image" src="images/ob_igre.gif" alt="Ob Igre">
+    <div id="ob-igre-content">
+      <p id="credit-1">Сделано с любовью ❤️</p>
+      <p id="credit-2"><b>Геймдизайн</b><br>Антон и Мария Мерзляковы</p>
+      <p id="credit-3"><b>Анимация</b><br>Мария Мерзлякова</p>
+      <p id="credit-4"><b>Разработка</b><br>Антон Мерзляков</p>
+      <p id="credit-5"><b>КОТент-мейкер</b><br>Лапка</p>
+      <button id="new-game-button">Новая игра</button>
+    </div>
+  </div>
+
+  <!-- Кнопка управления звуком -->
+  <button id="sound-toggle">
+    <img id="sound-icon" src="images/sound-off.png" alt="Sound Off">
+  </button>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="level-text"></div>
+  <div id="wool-count"></div>
+  <div id="message-text"></div>
+  <div id="cat-fact"></div>
+
+  <!-- Аудио элементы -->
+  <audio id="background-music" loop>
+    <source src="audio/background_music.wav" type="audio/wav">
+    Ваш браузер не поддерживает элемент <audio>.
+  </audio>
+  <audio id="wool-collect-sound">
+    <source src="audio/wool_collect.wav" type="audio/wav">
+  </audio>
+
+  <script src="game.js"></script>
+</body>
+</html>
