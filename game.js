@@ -86,7 +86,7 @@ function toggleSound() {
   soundIcon.src = isSoundOn ? 'images/sound-on.png' : 'images/sound-off.png';
   
   if (isSoundOn) {
-    backgroundMusic.volume = 0.5;
+    backgroundMusic.volume = 0.3; // Уменьшенная громкость
     backgroundMusic.play().catch(error => {
       console.warn("Не удалось воспроизвести фоновую музыку:", error);
     });
@@ -215,10 +215,11 @@ function selectCharacter(selected) {
 }
 
 function startGame() {
-  if (isSoundOn) {
-    backgroundMusic.pause();
-    backgroundMusic.currentTime = 0;
-  }
+  // Удаляем остановку музыки
+  // if (isSoundOn) {
+  //   backgroundMusic.pause();
+  //   backgroundMusic.currentTime = 0;
+  // }
 
   generateLevel();
   lastTime = performance.now();
@@ -287,7 +288,7 @@ function generateLevel() {
       isVisible: true,
       disappearTime: null,
       currentFrame: 0,
-      lastFrameUpdate: Date.now()
+ spiralFrameUpdate: Date.now()
     });
   }
   else if (currentLevel === 5 || currentLevel === 6) {
@@ -377,7 +378,16 @@ function generateLevel() {
     const safeFromPlayer = Math.hypot(player.x - x, player.y - y) > 100;
 
     if (safeFromPlayer) {
-      wools.push({ x, y, scale: 1 });
+      wools.push({
+        x,
+        y,
+        scale: 1,
+        isCollecting: false,
+        collectStartTime: null,
+        collectDuration: 500, // Длительность анимации в миллисекундах
+        targetY: y - 50, // Шерсть улетает на 50 пикселей вверх
+        initialScale: 1
+      });
     }
     attempts++;
   }
@@ -525,6 +535,25 @@ function gameLoop(timestamp) {
     handlePlayerMovement(deltaTime);
     handleCollisions();
     updateCats(deltaTime);
+
+    // Обновление анимации собираемой шерсти
+    const now = Date.now();
+    wools = wools.filter(wool => {
+      if (wool.isCollecting) {
+        const elapsed = now - wool.collectStartTime;
+        const progress = Math.min(elapsed / wool.collectDuration, 1); // Прогресс анимации (0..1)
+
+        // Линейная интерполяция для движения вверх
+        wool.y = wool.y + (wool.targetY - wool.y) * progress;
+        // Уменьшение масштаба
+        wool.scale = wool.initialScale * (1 - progress);
+
+        // Если анимация завершена, удаляем шерсть
+        return progress < 1;
+      }
+      return true;
+    });
+
     drawGame();
   }
 
@@ -546,10 +575,11 @@ function gameLoop(timestamp) {
 }
 
 function showVictoryScreen() {
-  if (isSoundOn) {
-    backgroundMusic.pause();
-    backgroundMusic.currentTime = 0;
-  }
+  // Удаляем остановку музыки
+  // if (isSoundOn) {
+  //   backgroundMusic.pause();
+  //   backgroundMusic.currentTime = 0;
+  // }
 
   const victoryScreen = document.createElement('div');
   victoryScreen.style.position = 'absolute';
@@ -665,9 +695,16 @@ function checkCollisionWithObstacles(newX, newY) {
 }
 
 function handleCollisions() {
-  wools = wools.filter(wool => {
-    if (player.x < wool.x + 30 && player.x + player.width > wool.x && 
-        player.y < wool.y + 30 && player.y + player.height > wool.y) {
+  wools.forEach(wool => {
+    if (
+      !wool.isCollecting &&
+      player.x < wool.x + 30 &&
+      player.x + player.width > wool.x &&
+      player.y < wool.y + 30 &&
+      player.y + player.height > wool.y
+    ) {
+      wool.isCollecting = true;
+      wool.collectStartTime = Date.now();
       woolCollected++;
       updateWoolCounter();
       if (isSoundOn) {
@@ -679,9 +716,7 @@ function handleCollisions() {
       if (woolCollected === totalWool) {
         showMessage("Шерсть собрана!");
       }
-      return false;
     }
-    return true;
   });
 }
 
@@ -711,7 +746,14 @@ function drawGame() {
   } else {
     wools.forEach(wool => {
       if (wool.x !== undefined && wool.y !== undefined) {
-        ctx.drawImage(woolImage, wool.x, wool.y, 30, 30);
+        const size = 30 * wool.scale; // Учитываем масштаб
+        ctx.drawImage(
+          woolImage,
+          wool.x,
+          wool.y,
+          size,
+          size
+        );
       } else {
         console.warn("Некорректный объект шерсти:", wool);
       }
@@ -766,3 +808,10 @@ window.addEventListener('resize', resizeCanvas);
 
 resizeCanvas();
 showMurMyakScreen();
+// Запуск музыки при загрузке, если звук включен
+if (isSoundOn) {
+  backgroundMusic.volume = 0.3;
+  backgroundMusic.play().catch(error => {
+    console.warn("Не удалось воспроизвести фоновую музыку при загрузке:", error);
+  });
+}
