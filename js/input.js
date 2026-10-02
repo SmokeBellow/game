@@ -43,10 +43,9 @@ export class Input {
       if (this.stick.active) return;
       this.stick.active = true;
       this.stick.id = e.pointerId;
-      const r = st.getBoundingClientRect();
       this.stick.cx = e.clientX; this.stick.cy = e.clientY;
-      this.joyEl.style.left = `${e.clientX - r.left}px`;
-      this.joyEl.style.top = `${e.clientY - r.top}px`;
+      this.joyEl.style.left = `${e.clientX}px`;
+      this.joyEl.style.top = `${e.clientY}px`;
       this.joyEl.classList.add('on');
       setKnob(0, 0);
       zone.setPointerCapture(e.pointerId);

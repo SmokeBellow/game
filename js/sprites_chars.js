@@ -197,13 +197,68 @@ function drawSide(x, who, step, b, mode) {
   }
 }
 
+
+// ---------------------------------------------------------------- шапочки (награды за звёзды)
+export const HATS = [
+  { id: 'none', name: 'Без шапки', stars: 0 },
+  { id: 'beanie', name: 'Вязаная шапка', stars: 8 },
+  { id: 'bow', name: 'Бант', stars: 20 },
+  { id: 'ears', name: 'Кошачьи ушки', stars: 32 },
+  { id: 'chef', name: 'Колпак повара', stars: 46 },
+  { id: 'crown', name: 'Корона уюта', stars: 60 },
+];
+
+// b — смещение головы по вертикали; side — вид сбоку (голова смещена влево на 1 px)
+function drawHat(x, hat, dir, b) {
+  if (!hat || hat === 'none') return;
+  const side = dir === 'right';
+  const x0 = side ? 3 : 3, w = side ? 9 : 10;
+  switch (hat) {
+    case 'beanie':
+      rect(x, x0, -2 + b, w, 4, '#e8745e'); rect(x, x0, 1 + b, w, 1, '#f6b0a0');
+      for (let i = 0; i < w; i += 2) dot(x, x0 + i, 0 + b, '#c4503c');
+      rect(x, x0 + (w >> 1) - 1, -4 + b, 3, 2, '#ffffff'); dot(x, x0 + (w >> 1), -5 + b, '#ffffff');
+      break;
+    case 'bow': {
+      const bx = side ? 9 : (dir === 'up' ? 11 : 10);
+      rect(x, bx, -1 + b, 5, 4, '#ff7aa8'); rect(x, bx + 2, 0 + b, 1, 2, '#c43a70');
+      dot(x, bx, -1 + b, '#ffc0d8'); dot(x, bx + 4, -1 + b, '#ffc0d8');
+      break;
+    }
+    case 'ears':
+      rect(x, x0, 0 + b, w, 1, '#2a2a33');
+      rect(x, x0 + 1, -3 + b, 3, 3, '#2a2a33'); rect(x, x0 + w - 4, -3 + b, 3, 3, '#2a2a33');
+      dot(x, x0 + 2, -2 + b, '#e8a0b0'); dot(x, x0 + w - 3, -2 + b, '#e8a0b0');
+      break;
+    case 'chef':
+      rect(x, x0, -1 + b, w, 2, '#e6e2da');
+      rect(x, x0 - 1, -4 + b, w + 2, 3, '#ffffff'); rect(x, x0 + 1, -6 + b, w - 2, 3, '#ffffff');
+      rect(x, x0 + 2, -7 + b, w - 4, 1, '#ffffff'); dot(x, x0 + 3, -5 + b, '#d8d4cc'); dot(x, x0 + w - 4, -3 + b, '#d8d4cc');
+      break;
+    case 'crown':
+      rect(x, x0, -1 + b, w, 3, '#f4c430'); rect(x, x0, 1 + b, w, 1, '#c99a10');
+      rect(x, x0, -3 + b, 2, 2, '#f4c430'); rect(x, x0 + (w >> 1) - 1, -4 + b, 2, 3, '#f4c430'); rect(x, x0 + w - 2, -3 + b, 2, 2, '#f4c430');
+      dot(x, x0 + (w >> 1), 0 + b, '#e84a5a'); dot(x, x0 + 2, 0 + b, '#58c8e8'); dot(x, x0 + w - 3, 0 + b, '#58e8a0');
+      break;
+    default: break;
+  }
+}
+
+export function hatIcon(hat) {
+  const [c, x] = mk(16, 14);
+  x.translate(0, 8);
+  if (hat === 'none') { rect(x, 4, -2, 8, 6, '#00000000'); rect(x, 5, 0, 6, 1, '#b8a898'); rect(x, 7, -2, 2, 5, '#b8a898'); } else drawHat(x, hat, 'down', 0);
+  return outline(c);
+}
+
 // frames[who][dir] = { walk: [4], idle: [2], hug: [1] }; каждый кадр — {c, ax, ay}
-export function buildPlayers() {
+export function buildPlayers(hat = 'none') {
   const out = {};
   for (const who of ['masha', 'anton']) {
     out[who] = {};
     const make = (dir, mode, f) => {
-      const [c, x] = mk(16, 24);
+      const [c, x] = mk(16, 29);
+      x.translate(0, 5);
       const walking = mode === 'walk';
       const step = walking ? STEP[f] : 0;
       let b = walking ? BOB[f] : (mode === 'idle' ? f : 0);
@@ -211,7 +266,8 @@ export function buildPlayers() {
       if (dir === 'down') drawFront(x, who, step, b, mode);
       else if (dir === 'up') drawBack(x, who, step, b);
       else drawSide(x, who, step, b, mode);
-      return { c: outline(c), ax: 9, ay: 25 };
+      drawHat(x, hat, dir, b);
+      return { c: outline(c), ax: 9, ay: 30 };
     };
     for (const dir of ['down', 'up', 'right']) {
       out[who][dir] = {

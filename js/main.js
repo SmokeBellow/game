@@ -7,6 +7,7 @@ import { THEMES } from './sprites_props.js';
 import { Input } from './input.js';
 import { Sound } from './audio.js';
 import * as store from './save.js';
+import { HATS } from './sprites_chars.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -48,6 +49,13 @@ const renderer = new Renderer($('#game'));
 const bgRenderer = new Renderer($('#bg-canvas'));
 let demoWorld = null;
 let demoT = 0;
+
+function currentHat() {
+  const d = store.data();
+  const h = HATS.find((x) => x.id === d.hat);
+  return h && store.totalStars() >= h.stars ? h.id : 'none';
+}
+function applyHat() { art.setHat(currentHat()); }
 
 const SCREENS = ['logo', 'title', 'menu', 'char', 'map', 'about', 'ending', 'game'];
 const BG_SCREENS = new Set(['menu', 'char', 'map', 'about']);
@@ -193,9 +201,31 @@ $$('[data-back]').forEach((b) => { b.onclick = () => { sound.back(); showMenu();
 let charAfter = null;
 let charAnim = null;
 
+function buildHatRow() {
+  const row = $('#hat-row');
+  row.innerHTML = '';
+  const stars = store.totalStars();
+  const cur = currentHat();
+  HATS.forEach((h) => {
+    const ok = stars >= h.stars;
+    const b = document.createElement('button');
+    b.className = `hat-btn${ok ? '' : ' locked'}${h.id === cur ? ' sel' : ''}`;
+    b.innerHTML = `<img alt=""><span>${ok ? h.name : `★ ${h.stars}`}</span>`;
+    $('img', b).src = art.hatIcon(h.id).toDataURL();
+    b.title = ok ? h.name : `Откроется за ${h.stars} звёзд`;
+    if (ok) b.onclick = () => {
+      sound.unlock(); sound.click();
+      store.data().hat = h.id; store.save();
+      applyHat(); buildHatRow(); if (demoWorld) startDemo();
+    };
+    row.appendChild(b);
+  });
+}
+
 function showChar(after) {
   charAfter = after;
   show('char');
+  buildHatRow();
   const sel = store.data().character;
   $$('.char-card').forEach((c) => c.classList.toggle('sel', c.dataset.char === sel));
   clearInterval(charAnim);
@@ -410,7 +440,10 @@ function showWin() {
   state.winShown = true;
   const w = state.world;
   const res = w.result();
+  const starsBefore = store.totalStars();
   const saved = store.recordLevel(state.levelId, res);
+  const starsAfter = store.totalStars();
+  const newHat = HATS.find((h) => h.stars > starsBefore && h.stars <= starsAfter);
   renderer.confetti(36);
   sound.setDuck(0.6);
   $('#win-title').textContent = LEVEL_PHRASES[(state.levelId * 7 + Math.floor(Math.random() * 3)) % LEVEL_PHRASES.length];
@@ -422,7 +455,9 @@ function showWin() {
   const box = $('#win-stars');
   box.innerHTML = lines.map((l) => `<div class="star-line pending"><span class="s">★</span><span>${l.text}</span></div>`).join('');
   $('#win-stats').innerHTML = `<div><b>${res.score}</b>очки уюта</div><div><b>x${res.maxCombo}</b>лучшая цепочка</div><div><b>${w.hugs}</b>объятий</div>`;
-  $('#win-fact').textContent = CAT_FACTS[Math.floor(Math.random() * CAT_FACTS.length)];
+  $('#win-fact').textContent = newHat
+    ? `🎩 Новая шапочка: ${newHat.name}! Надеть её можно в меню «Персонаж».`
+    : CAT_FACTS[Math.floor(Math.random() * CAT_FACTS.length)];
   const last = state.levelId >= LEVELS.length;
   $('#w-next').textContent = last ? 'Финал' : 'Дальше';
   $('#ov-win').classList.add('on');
@@ -513,6 +548,14 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// вкладку свернули — ставим на паузу и приглушаем звук
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (state.mode === 'game' && state.world && state.world.state === 'play' && !state.overlay && !state.paused) setPause(true);
+    sound.suspend();
+  } else sound.resume();
+});
+
 // звук можно включить только по жесту пользователя
 ['pointerdown', 'keydown', 'touchstart'].forEach((ev) => {
   window.addEventListener(ev, () => sound.unlock(), { passive: true });
@@ -524,11 +567,12 @@ async function boot() {
   const d = store.data();
   sound.setVolumes(d.settings.music, d.settings.sfx);
   fit();
+  applyHat();
   try { await Promise.all([document.fonts.load('8px "Press Start 2P"'), document.fonts.load('800 16px "Nunito"')]); } catch (e) { /* шрифты подтянутся позже */ }
   startDemo();
   requestAnimationFrame(frame);
   const q = new URLSearchParams(location.search);
   if (q.has('skip')) { showMenu(); } else runLogo();
-  window.__game = { state, store, sound, startLevel, showMenu, showMap, input, renderer, LEVELS };
+  window.__game = { state, store, sound, startLevel, showMenu, showMap, showEnding, showAbout, input, renderer, LEVELS };
 }
 boot();

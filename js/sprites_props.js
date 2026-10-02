@@ -307,7 +307,16 @@ export function iconCanvas(name, T = THEMES.living) {
     case 'robot': put(robotSprite(0)); break;
     case 'ice': { rect(x, 2, 4, 20, 16, '#cfe4f4'); rect(x, 4, 6, 4, 2, '#fff'); rect(x, 12, 12, 6, 2, '#fff'); rect(x, 8, 15, 3, 1, '#fff'); break; }
     case 'laser': { rect(x, 3, 9, 11, 5, '#4a4a58'); rect(x, 3, 9, 11, 1, '#6a6a7c'); rect(x, 14, 10, 3, 3, '#ff4a4a'); rect(x, 18, 11, 3, 1, '#ff8a8a'); dot(x, 21, 11, '#fff'); break; }
-    case 'cat': { x.drawImage(heartSprite().c, 0, 0); break; }
+    case 'cat': case 'boss': {
+      const body = name === 'boss' ? '#2a2a33' : '#e88b3d', hi = name === 'boss' ? '#4a4a58' : '#f8bb78', eye = name === 'boss' ? '#e4ee55' : '#3a9a46';
+      rect(x, 4, 8, 16, 13, body); rect(x, 5, 7, 14, 1, body);
+      rect(x, 4, 3, 4, 6, body); rect(x, 16, 3, 4, 6, body); dot(x, 5, 5, '#e8a0b0'); dot(x, 18, 5, '#e8a0b0');
+      rect(x, 6, 8, 12, 1, hi);
+      rect(x, 7, 12, 3, 3, eye); rect(x, 14, 12, 3, 3, eye); rect(x, 8, 12, 1, 3, '#10100c'); rect(x, 15, 12, 1, 3, '#10100c');
+      rect(x, 11, 16, 2, 1, '#e8a0b0'); rect(x, 10, 18, 4, 1, '#f6f1e6');
+      if (name === 'boss') { rect(x, 0, 18, 7, 5, '#f1ead6'); rect(x, 0, 21, 7, 2, '#7a3b2e'); }
+      break;
+    }
     default: break;
   }
   return c;
@@ -430,11 +439,14 @@ function drawClock(x, px, py, T) {
 
 function wallBlock(x, T, tx, ty) {
   const px = tx * TILE, py = ty * TILE;
-  rect(x, px, py, TILE, TILE, T.wallD);
-  rect(x, px, py, TILE, 11, mix(T.wall, '#ffffff', 0.2));
+  const dark = mix(T.wains, '#000000', 0.3);
+  rect(x, px, py, TILE, TILE, dark);
+  rect(x, px, py, TILE, 9, mix(T.wall, '#ffffff', 0.12));
   rect(x, px, py, TILE, 1, T.trim);
-  rect(x, px, py + 11, TILE, 5, T.wains); rect(x, px, py + 11, TILE, 1, T.trim);
-  rect(x, px, py + 15, TILE, 1, mix(T.wains, '#000000', 0.4));
+  rect(x, px, py + 8, TILE, 1, mix(T.wall, '#000000', 0.25));
+  rect(x, px + 1, py + 11, TILE - 2, 3, mix(T.wains, T.wainsL, 0.7));
+  rect(x, px, py + 15, TILE, 1, mix(dark, '#000000', 0.5));
+  rect(x, px, py, 1, TILE, mix(dark, '#000000', 0.45)); rect(x, px + TILE - 1, py, 1, TILE, mix(dark, '#000000', 0.45));
 }
 
 function drawRugTile(x, T, tx, ty, grid) {
@@ -462,8 +474,8 @@ function drawRugTile(x, T, tx, ty, grid) {
 
 function drawIceTile(x, T, tx, ty, grid) {
   const px = tx * TILE, py = ty * TILE;
-  rect(x, px, py, TILE, TILE, '#d8ecf8'); rect(x, px, py, TILE, TILE, '#cfe6f6');
-  rect(x, px, py, TILE, 1, '#a8cfe8'); rect(x, px, py, 1, TILE, '#a8cfe8');
+  rect(x, px, py, TILE, TILE, '#b9d9ee');
+  rect(x, px, py, TILE, 1, '#8fbcdc'); rect(x, px, py, 1, TILE, '#8fbcdc');
   // блики
   for (let i = 0; i < 3; i++) {
     const sx = px + 2 + i * 5, sy = py + 11 - i * 4;
@@ -508,6 +520,10 @@ export function buildRoomBg(themeName, world, id) {
   // внутренние стены
   for (let ty = IN_Y; ty < IN_Y + IN_H; ty++) for (let tx = IN_X; tx < IN_X + IN_W; tx++) {
     if (world.wall[ty * GW + tx]) wallBlock(x, T, tx, ty);
+  }
+  x.fillStyle = 'rgba(20,10,30,0.28)';
+  for (let ty = IN_Y; ty < IN_Y + IN_H - 1; ty++) for (let tx = IN_X; tx < IN_X + IN_W; tx++) {
+    if (world.wall[ty * GW + tx] && !world.wall[(ty + 1) * GW + tx]) x.fillRect(tx * TILE, (ty + 1) * TILE, TILE, 4);
   }
   // солнечные лучи из окон
   x.save();

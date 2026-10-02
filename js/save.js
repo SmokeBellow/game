@@ -3,6 +3,7 @@ const KEY = 'murmyak-sherstiny-v2';
 
 const defaults = () => ({
   character: null,
+  hat: 'none',
   levels: {},          // id -> { stars:[bool,bool,bool], time, score, yarn }
   seen: {},            // показанные подсказки механик
   settings: { music: 0.5, sfx: 0.8 },

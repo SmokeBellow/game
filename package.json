@@ -1,1 +1,11 @@
-{"type":"module","private":true}
+{
+  "name": "murmyak-sherstiny",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Шерстины — уютная игра про уборку кошачьей шерсти (MurMyak Games)",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node tests/validate.mjs --play"
+  }
+}

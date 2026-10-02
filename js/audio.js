@@ -65,6 +65,16 @@ export class Sound {
     if (this.unlocked) next.play().catch(() => {});
   }
 
+  suspend() {
+    if (this.current) this.current.pause();
+    if (this.ctx && this.ctx.state === 'running') this.ctx.suspend();
+  }
+
+  resume() {
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.current && this.unlocked) this.current.play().catch(() => {});
+  }
+
   setDuck(v) { this.duck = v; this.applyVolumes(); }
 
   // ---- синтез ----

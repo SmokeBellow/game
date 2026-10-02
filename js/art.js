@@ -1,5 +1,5 @@
 // Реестр спрайтов: всё рисуется один раз при загрузке.
-import { buildPlayers, buildCats, buildBoss } from './sprites_chars.js';
+import { buildPlayers, buildCats, buildBoss, hatIcon } from './sprites_chars.js';
 import {
   THEMES, furnSprite, woolSprite, yarnSprite, bowlSprite, turboSprite, robotSprite,
   heartSprite, sparkSprite, buildRoomBg, buildVignette, iconCanvas,
@@ -12,7 +12,9 @@ export function getArt() {
   if (built) return built;
   const furnCache = new Map();
   built = {
-    players: buildPlayers(),
+    players: buildPlayers('none'),
+    setHat(hat) { built.players = buildPlayers(hat); },
+    hatIcon,
     cats: buildCats(),
     boss: buildBoss(),
     wool: [woolSprite(0), woolSprite(1)],
