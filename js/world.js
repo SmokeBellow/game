@@ -303,8 +303,12 @@ export class World {
     const sp = Math.hypot(p.vx, p.vy);
     p.moving = sp > 6;
     if (ix !== 0 || iy !== 0) {
-      if (Math.abs(ix) > Math.abs(iy)) p.dir = ix > 0 ? 'right' : 'left';
-      else p.dir = iy > 0 ? 'down' : 'up';
+      // гистерезис: на диагоналях спрайт не мигает между боковым и фронтальным видом
+      const ax = Math.abs(ix), ay = Math.abs(iy);
+      const horiz = p.dir === 'left' || p.dir === 'right';
+      if (horiz ? ay > ax * 1.4 : ax > ay * 1.4) p.dir = horiz ? (iy > 0 ? 'down' : 'up') : (ix > 0 ? 'right' : 'left');
+      else if (horiz) p.dir = ix > 0 ? 'right' : (ix < 0 ? 'left' : p.dir);
+      else p.dir = iy > 0 ? 'down' : (iy < 0 ? 'up' : p.dir);
       const m = Math.hypot(ix, iy);
       p.fx = ix / m; p.fy = iy / m;
     }

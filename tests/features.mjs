@@ -115,4 +115,25 @@ ok('живая комната учитывается: цепочка, объят
   assert.ok(!ach.check(store.data(), liveOf(w2)).some((a) => a.id === 'nohug'));
 });
 
+ok('направление спрайта не мигает при движении по диагонали (дрожащий стик)', () => {
+  const w = new World(LEVELS[0]);
+  w.player.x = 30; w.player.y = 100;
+  let flips = 0, last = w.player.dir;
+  for (let i = 0; i < 120; i++) {
+    // почти ровная диагональ с дрожью ±8%
+    const j = (i % 2 ? 1 : -1) * 0.08;
+    w.update(1 / 60, { x: 0.7 + j, y: 0.7 - j });
+    w.ev.length = 0;
+    if (w.player.dir !== last) { flips++; last = w.player.dir; }
+  }
+  assert.ok(flips <= 1, `смен направления: ${flips}`);
+  // а уверенный поворот всё же переключает направление
+  const w2 = new World(LEVELS[0]);
+  w2.player.x = 30; w2.player.y = 100;
+  for (let i = 0; i < 20; i++) w2.update(1 / 60, { x: 1, y: 0 });
+  assert.equal(w2.player.dir, 'right');
+  for (let i = 0; i < 20; i++) w2.update(1 / 60, { x: 0, y: 1 });
+  assert.equal(w2.player.dir, 'down');
+});
+
 console.log(`\nГотово: ${n} проверок`);

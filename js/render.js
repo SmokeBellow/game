@@ -23,6 +23,22 @@ export class Renderer {
     this.winSparkT = 0;
   }
 
+  // свечения рисуются один раз (создавать градиенты каждый кадр дорого на слабых телефонах)
+  glow(key, r, rgb, a) {
+    this.glows = this.glows || {};
+    if (!this.glows[key]) {
+      const c = document.createElement('canvas');
+      c.width = c.height = r * 2;
+      const x = c.getContext('2d');
+      const g = x.createRadialGradient(r, r, 1, r, r, r);
+      g.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`);
+      g.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+      x.fillStyle = g; x.fillRect(0, 0, r * 2, r * 2);
+      this.glows[key] = c;
+    }
+    return this.glows[key];
+  }
+
   setWorld(world) {
     this.world = world;
     this.themeName = WORLDS[world.def.world - 1].theme;
@@ -36,6 +52,9 @@ export class Renderer {
       this.motes.push({ x: 90 + Math.random() * 230, y: 40 + Math.random() * 160, p: Math.random() * 6.28, s: 2 + Math.random() * 4 });
     }
     this.yarnCol = (world.def.id * 3) % 8;
+    // статические прямоугольники мебели, закрывающие предметы за ней (для drawOccluded)
+    this.staticOcc = world.furn.map((f) => [f.tx * TILE - 1, f.ty * TILE - f.extra - 1, (f.tx + f.w) * TILE + 1, f.ty * TILE]);
+    if (world.boss) this.staticOcc.push([world.boss.tx * TILE - 8, world.boss.ty * TILE - 12, world.boss.tx * TILE + 56, world.boss.ty * TILE]);
   }
 
   // ---- события мира -> частицы ----
@@ -202,10 +221,9 @@ export class Renderer {
     for (const it of world.items) {
       if (it.taken) continue;
       const sp = A.turbo;
-      const gl = 6 + Math.sin(it.t * 4) * 1.5;
-      const g = ctx.createRadialGradient(it.x, it.y, 1, it.x, it.y, gl + 6);
-      g.addColorStop(0, 'rgba(120,255,180,0.5)'); g.addColorStop(1, 'rgba(120,255,180,0)');
-      ctx.fillStyle = g; ctx.fillRect(it.x - 14, it.y - 14, 28, 28);
+      ctx.globalAlpha = 0.75 + Math.sin(it.t * 4) * 0.25;
+      ctx.drawImage(this.glow('turbo', 14, [120, 255, 180], 0.5), Math.round(it.x - 14), Math.round(it.y - 14));
+      ctx.globalAlpha = 1;
       ctx.drawImage(sp.c, Math.round(it.x - sp.ax), Math.round(it.y - sp.ay + 8 + Math.sin(it.t * 3) * 1.5));
     }
   }
@@ -213,8 +231,7 @@ export class Renderer {
   // шерсть, клубок и батарейки за высокой мебелью просвечивают поверх неё,
   // чтобы последнюю шерстинку никогда не приходилось искать вслепую
   drawOccluded(ctx, world) {
-    const rects = world.furn.map((f) => [f.tx * TILE - 1, f.ty * TILE - f.extra - 1, (f.tx + f.w) * TILE + 1, f.ty * TILE]);
-    if (world.boss) rects.push([world.boss.tx * TILE - 8, world.boss.ty * TILE - 12, world.boss.tx * TILE + 56, world.boss.ty * TILE]);
+    const rects = this.staticOcc.slice();
     for (const c of world.crates) rects.push([c.x - 1, c.y - 4, c.x + TILE + 1, c.y + TILE]);
     const hidden = (x, y) => rects.some((r) => x + 5 > r[0] && x - 5 < r[2] && y + 5 > r[1] && y - 3 < r[3]);
     const A = this.art;
@@ -241,10 +258,8 @@ export class Renderer {
     ctx.drawImage(sp.c, f.tx * TILE + sp.ox, f.ty * TILE + sp.oy);
     if (f.type === 'l') { // тёплое свечение у торшера
       const cx = f.tx * TILE + 8, cy = f.ty * TILE - 14;
-      const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, 34);
       const k = this.theme.tint ? 0.55 : 0.35;
-      g.addColorStop(0, `rgba(255,230,150,${k})`); g.addColorStop(1, 'rgba(255,230,150,0)');
-      ctx.fillStyle = g; ctx.fillRect(cx - 36, cy - 36, 72, 72);
+      ctx.drawImage(this.glow(`lamp${k}`, 36, [255, 230, 150], k), cx - 36, cy - 36);
     }
     void fp;
   }
@@ -266,10 +281,9 @@ export class Renderer {
     ctx.fillStyle = 'rgba(30,12,40,0.28)';
     ctx.beginPath(); ctx.ellipse(Math.round(p.x), Math.round(p.y) - 1, 7, 2.5, 0, 0, 6.28); ctx.fill();
     if (p.turbo > 0) {
-      const pulse = 10 + Math.sin(t * 14) * 1.5;
-      const g = ctx.createRadialGradient(p.x, p.y - 8, 2, p.x, p.y - 8, pulse + 10);
-      g.addColorStop(0, 'rgba(120,255,190,0.45)'); g.addColorStop(1, 'rgba(120,255,190,0)');
-      ctx.fillStyle = g; ctx.fillRect(p.x - 26, p.y - 34, 52, 52);
+      ctx.globalAlpha = 0.8 + Math.sin(t * 14) * 0.2;
+      ctx.drawImage(this.glow('aura', 26, [120, 255, 190], 0.45), Math.round(p.x - 26), Math.round(p.y - 34));
+      ctx.globalAlpha = 1;
       if (Math.random() < 0.5) this.parts.push({ k: 'spark', x: p.x + (Math.random() - 0.5) * 14, y: p.y - 4, vx: 0, vy: -10, life: 0.4, max: 0.4, col: '#8affc0' });
     }
     if (p.turbo > 0) {
@@ -354,9 +368,7 @@ export class Renderer {
     if (!L.on) return;
     const p = world.player;
     const x = L.x + Math.sin(t * 17) * 0.8, y = L.y + Math.cos(t * 13) * 0.8;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, 9);
-    g.addColorStop(0, 'rgba(255,60,60,0.7)'); g.addColorStop(1, 'rgba(255,60,60,0)');
-    ctx.fillStyle = g; ctx.fillRect(x - 10, y - 10, 20, 20);
+    ctx.drawImage(this.glow('laser', 10, [255, 60, 60], 0.7), Math.round(x - 10), Math.round(y - 10));
     ctx.fillStyle = '#ff3a3a'; ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
     ctx.fillStyle = '#fff'; ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
     ctx.strokeStyle = 'rgba(255,80,80,0.28)';
