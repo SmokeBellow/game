@@ -5,7 +5,8 @@ export class Input {
     this.edge = { bowl: false, pause: false, restart: false, laserToggle: false };
     this.aim = null;      // позиция мыши в координатах игры (384 x 224)
     this.aimAt = 0;
-    this.stick = { x: 0, y: 0, active: false, id: null, cx: 0, cy: 0 };
+    this.stick = { x: 0, y: 0, tx: 0, ty: 0, active: false, id: null, cx: 0, cy: 0 };
+    this.lastPoll = 0;
     this.btn = { laser: false };
     this.touchMode = false;
     this.enabled = false;
@@ -36,7 +37,9 @@ export class Input {
   bindTouch() {
     const st = this.stage;
     const zone = st.querySelector('#touch-zone');
-    const R = 44; // радиус джойстика в CSS-пикселях
+    // радиус стика подбирается под размер экрана (≈ 1 см): слишком маленький делает управление нервным
+    const radius = () => Math.max(52, Math.min(80, Math.min(window.innerWidth, window.innerHeight) * 0.16));
+    let R = radius();
     const setKnob = (dx, dy) => {
       this.knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
     };
@@ -45,6 +48,8 @@ export class Input {
       this.touchMode = true;
       document.body.classList.add('touch');
       if (this.stick.active) return;
+      R = radius();
+      this.joyEl.style.setProperty('--r', `${R}px`);
       this.stick.active = true;
       this.stick.id = e.pointerId;
       this.stick.cx = e.clientX; this.stick.cy = e.clientY;
@@ -57,17 +62,26 @@ export class Input {
     zone.addEventListener('pointermove', (e) => {
       if (!this.stick.active || e.pointerId !== this.stick.id) return;
       let dx = e.clientX - this.stick.cx, dy = e.clientY - this.stick.cy;
-      const m = Math.hypot(dx, dy);
-      if (m > R) { dx = (dx / m) * R; dy = (dy / m) * R; }
+      let m = Math.hypot(dx, dy);
+      if (m > R) {
+        // база стика едет за пальцем, чтобы он не «упирался» в край и не терял направление
+        const k = (m - R) / m;
+        this.stick.cx += dx * k; this.stick.cy += dy * k;
+        this.joyEl.style.left = `${this.stick.cx}px`;
+        this.joyEl.style.top = `${this.stick.cy}px`;
+        dx = e.clientX - this.stick.cx; dy = e.clientY - this.stick.cy; m = R;
+      }
       setKnob(dx, dy);
-      const k = Math.min(1, m / R);
-      this.stick.x = m > 6 ? (dx / (m || 1)) * k : 0;
-      this.stick.y = m > 6 ? (dy / (m || 1)) * k : 0;
-      if (k < 0.18) { this.stick.x = 0; this.stick.y = 0; }
+      // мёртвая зона убирает дрожь покоящегося пальца; полная скорость достигается уже на ~45% хода,
+      // а небольшое отклонение даёт медленный шаг для точных манёвров
+      const dead = R * 0.11, full = R * 0.45;
+      const mag = m <= dead ? 0 : Math.min(1, ((m - dead) / (full - dead)) ** 0.75);
+      this.stick.tx = m > 0 ? (dx / m) * mag : 0;
+      this.stick.ty = m > 0 ? (dy / m) * mag : 0;
     });
     const end = (e) => {
       if (e.pointerId !== this.stick.id) return;
-      this.stick.active = false; this.stick.x = 0; this.stick.y = 0; this.stick.id = null;
+      this.stick.active = false; this.stick.x = 0; this.stick.y = 0; this.stick.tx = 0; this.stick.ty = 0; this.stick.id = null;
       this.joyEl.classList.remove('on');
     };
     zone.addEventListener('pointerup', end);
@@ -105,6 +119,15 @@ export class Input {
     if (k.has('ArrowRight') || k.has('KeyD')) x += 1;
     if (k.has('ArrowUp') || k.has('KeyW')) y -= 1;
     if (k.has('ArrowDown') || k.has('KeyS')) y += 1;
+    // лёгкое сглаживание вектора стика (≈ 35 мс): гасит мелкую дрожь пальца, не добавляя заметной задержки
+    const now = performance.now();
+    const dtp = Math.min(0.1, (now - (this.lastPoll || now)) / 1000);
+    this.lastPoll = now;
+    const f = 1 - Math.exp(-dtp / 0.035);
+    this.stick.x += (this.stick.tx - this.stick.x) * f;
+    this.stick.y += (this.stick.ty - this.stick.y) * f;
+    if (Math.abs(this.stick.x) < 0.02 && this.stick.tx === 0) this.stick.x = 0;
+    if (Math.abs(this.stick.y) < 0.02 && this.stick.ty === 0) this.stick.y = 0;
     if (x === 0 && y === 0) { x = this.stick.x; y = this.stick.y; }
     const aim = this.aim && performance.now() - this.aimAt < 4000 && !this.touchMode ? this.aim : null;
     const out = { x, y, bowl: this.edge.bowl, laserToggle: this.edge.laserToggle, aim };

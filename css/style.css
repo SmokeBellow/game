@@ -187,7 +187,7 @@ body.touch .item-btn { width: calc(var(--u) * 24); height: calc(var(--u) * 24); 
 #touch-zone { position: fixed; left: 0; top: 0; bottom: 0; width: 60vw; touch-action: none; z-index: 1; }
 #hud, #hud-items, #turbo-bar, #banner, #toast { z-index: 3; }
 #joy { position: fixed; z-index: 2; width: 0; height: 0; pointer-events: none; opacity: 0; transition: opacity .12s; }
-#joy::before { content: ""; position: absolute; left: -44px; top: -44px; width: 88px; height: 88px; border-radius: 50%; background: rgba(255,246,230,.18); border: 3px solid rgba(255,246,230,.5); }
+#joy::before { content: ""; position: absolute; left: calc(var(--r, 56px) * -1); top: calc(var(--r, 56px) * -1); width: calc(var(--r, 56px) * 2); height: calc(var(--r, 56px) * 2); border-radius: 50%; background: rgba(255,246,230,.18); border: 3px solid rgba(255,246,230,.5); }
 #joy.on { opacity: 1; }
 #joy-knob { position: absolute; left: -20px; top: -20px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,246,230,.75); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
 

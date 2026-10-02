@@ -416,6 +416,7 @@ function startLevel(id) {
   state.overlay = false;
   state.winShown = false;
   state.runAch = [];
+  hudVals.clear();
   $$('.ov').forEach((o) => o.classList.remove('on'));
   $('#toast').classList.remove('on');
   const d = store.data();
@@ -585,33 +586,37 @@ $('#w-next').onclick = () => {
 };
 
 // ---- HUD
+// HUD обновляется каждый кадр, поэтому элементы кешируются, а DOM трогается только при изменении значения
+const hudEls = {};
+const hudVals = new Map();
+function hudEl(sel) { return hudEls[sel] || (hudEls[sel] = $(sel)); }
+function hudText(sel, v) { if (hudVals.get(`t${sel}`) !== v) { hudVals.set(`t${sel}`, v); hudEl(sel).textContent = v; } }
+function hudStyle(sel, prop, v) { const k = `s${sel}${prop}`; if (hudVals.get(k) !== v) { hudVals.set(k, v); hudEl(sel).style[prop] = v; } }
+function hudClass(sel, cls, on) { const k = `c${sel}${cls}`; if (hudVals.get(k) !== on) { hudVals.set(k, on); hudEl(sel).classList.toggle(cls, on); } }
+
 function updateHud() {
   const w = state.world;
-  $('#meter-count').textContent = `${w.collected} / ${w.total}`;
-  $('#meter-fill').style.width = `${Math.round(w.progress() * 100)}%`;
-  const t = $('#time-now');
-  t.textContent = fmtTime(w.t);
-  $('#hud-time').classList.toggle('late', w.t > w.def.par);
+  hudText('#meter-count', `${w.collected} / ${w.total}`);
+  hudStyle('#meter-fill', 'width', `${Math.round(w.progress() * 100)}%`);
+  hudText('#time-now', fmtTime(w.t));
+  hudClass('#hud-time', 'late', w.t > w.def.par);
   if (w.yarn) {
-    $('#yarn-count').textContent = w.yarn.taken ? '1/1' : '0/1';
-    $('#hud-yarn').classList.toggle('got', w.yarn.taken);
+    hudText('#yarn-count', w.yarn.taken ? '1/1' : '0/1');
+    hudClass('#hud-yarn', 'got', w.yarn.taken);
   }
   if (w.avail.bowl) {
-    const b = $('#btn-bowl');
     const cdFrac = w.bowl ? 0 : Math.max(0, w.bowlCd) / CFG.bowlCooldown;
-    b.classList.toggle('ready', !w.bowl && w.bowlCd <= 0);
-    b.classList.toggle('active', !!w.bowl);
-    $('.cd', b).style.height = `${Math.round(cdFrac * 100)}%`;
+    hudClass('#btn-bowl', 'ready', !w.bowl && w.bowlCd <= 0);
+    hudClass('#btn-bowl', 'active', !!w.bowl);
+    hudStyle('#btn-bowl .cd', 'height', `${Math.round(cdFrac * 100)}%`);
   }
   if (w.avail.laser) {
-    const b = $('#btn-laser');
-    b.classList.toggle('active', w.laser.on);
-    b.classList.toggle('ready', !w.laser.on && w.laser.energy > 1.2);
-    $('.cd', b).style.height = `${Math.round((1 - w.laser.energy / CFG.laserMax) * 100)}%`;
+    hudClass('#btn-laser', 'active', w.laser.on);
+    hudClass('#btn-laser', 'ready', !w.laser.on && w.laser.energy > 1.2);
+    hudStyle('#btn-laser .cd', 'height', `${Math.round((1 - w.laser.energy / CFG.laserMax) * 100)}%`);
   }
-  const tb = $('#turbo-bar');
-  tb.classList.toggle('on', w.player.turbo > 0);
-  if (w.player.turbo > 0) $('i', tb).style.width = `${(w.player.turbo / CFG.turboTime) * 100}%`;
+  hudClass('#turbo-bar', 'on', w.player.turbo > 0);
+  if (w.player.turbo > 0) hudStyle('#turbo-bar i', 'width', `${Math.round((w.player.turbo / CFG.turboTime) * 100)}%`);
 }
 
 function gameFrame(dt) {
