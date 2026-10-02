@@ -8,6 +8,7 @@ await document.fonts.load('8px "Press Start 2P"');
 const q=new URLSearchParams(location.search);
 const id=+(q.get('l')||1); const ch=q.get('c')||'masha';
 const w=new World(LEVELS[id-1],{character:ch});
+if(q.get('hide')) w.addWool(216,168);
 const r=new Renderer(document.getElementById('c'));
 r.setWorld(w);
 const steps=+(q.get('s')||0);

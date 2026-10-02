@@ -65,6 +65,15 @@ function staticCheck(def) {
   if (w.cats.some((c) => c.kind === 'sleeper') && !(w.avail.bowl || w.avail.laser)) fail(def.id, 'есть соня, но нет ни миски, ни лазера');
   if (w.cats.some((c) => c.kind === 'sleeper' && c.budget > 0)) fail(def.id, 'у сони не должно быть шерсти');
   if (w.cats.some((c) => c.kind === 'wander' && c.budget <= 0)) fail(def.id, 'у кота нет шерсти');
+  // спрайт высокой мебели закрывает клетки над ней: шерсть там не видно
+  const rects = w.furn.map((f) => [f.tx * TILE - 1, f.ty * TILE - f.extra - 1, (f.tx + f.w) * TILE + 1, f.ty * TILE, f.name]);
+  if (w.boss) rects.push([w.boss.tx * TILE - 8, w.boss.ty * TILE - 12, w.boss.tx * TILE + 56, w.boss.ty * TILE, 'boss']);
+  const things = [...w.wools.map((x) => [x.x, x.y, 'шерсть']), ...(w.yarn ? [[w.yarn.x, w.yarn.y, 'клубок']] : []), ...w.items.map((i) => [i.x, i.y, 'турбо'])];
+  for (const [x, y, k] of things) {
+    for (const r of rects) {
+      if (x + 5 > r[0] && x - 5 < r[2] && y + 5 > r[1] && y - 3 < r[3]) fail(def.id, `${k} в (${Math.floor(x / TILE) - IN_X},${Math.floor(y / TILE) - IN_Y}) закрыта мебелью (${r[4]})`);
+    }
+  }
   if (w.total < 5) fail(def.id, 'слишком мало шерсти');
   if (w.total > 60) fail(def.id, `слишком много шерсти: ${w.total}`);
   return w;

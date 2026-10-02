@@ -144,6 +144,7 @@ export class Renderer {
     list.push({ y: world.player.y, fn: () => this.drawPlayer(ctx, world, t) });
     list.sort((a, b) => a.y - b.y);
     for (const o of list) o.fn();
+    this.drawOccluded(ctx, world);
 
     this.drawLaser(ctx, world, t);
     this.drawParticles(ctx, t);
@@ -198,6 +199,31 @@ export class Renderer {
       ctx.fillStyle = g; ctx.fillRect(it.x - 14, it.y - 14, 28, 28);
       ctx.drawImage(sp.c, Math.round(it.x - sp.ax), Math.round(it.y - sp.ay + 8 + Math.sin(it.t * 3) * 1.5));
     }
+  }
+
+  // шерсть, клубок и батарейки за высокой мебелью просвечивают поверх неё,
+  // чтобы последнюю шерстинку никогда не приходилось искать вслепую
+  drawOccluded(ctx, world) {
+    const rects = world.furn.map((f) => [f.tx * TILE - 1, f.ty * TILE - f.extra - 1, (f.tx + f.w) * TILE + 1, f.ty * TILE]);
+    if (world.boss) rects.push([world.boss.tx * TILE - 8, world.boss.ty * TILE - 12, world.boss.tx * TILE + 56, world.boss.ty * TILE]);
+    for (const c of world.crates) rects.push([c.x - 1, c.y - 4, c.x + TILE + 1, c.y + TILE]);
+    const hidden = (x, y) => rects.some((r) => x + 5 > r[0] && x - 5 < r[2] && y + 5 > r[1] && y - 3 < r[3]);
+    const A = this.art;
+    ctx.globalAlpha = 0.75;
+    for (const w of world.wools) {
+      if (w.taken || w.fly || !hidden(w.x, w.y)) continue;
+      const sp = A.wool[Math.floor(hash2(w.id, 1) * 2)];
+      ctx.drawImage(sp.c, Math.round(w.x - sp.ax), Math.round(w.y - sp.ay + 3 + Math.sin(w.age * 2.4 + w.id)));
+    }
+    const y = world.yarn;
+    if (y && !y.taken && hidden(y.x, y.y)) {
+      const sp = A.yarn[this.yarnCol];
+      ctx.drawImage(sp.c, Math.round(y.x - sp.ax), Math.round(y.y - sp.ay + 5));
+    }
+    for (const it of world.items) {
+      if (!it.taken && hidden(it.x, it.y)) ctx.drawImage(A.turbo.c, Math.round(it.x - A.turbo.ax), Math.round(it.y - A.turbo.ay + 8));
+    }
+    ctx.globalAlpha = 1;
   }
 
   drawFurn(ctx, f) {
