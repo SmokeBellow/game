@@ -42,6 +42,25 @@ function goTo(w, c, tx, ty) {
   return true;
 }
 
+// ближайшая к цели клетка среди тех, куда кошка вообще может дойти
+function nearestReachable(w, c, gx, gy) {
+  const [sx, sy] = catTile(c);
+  const seen = new Set([`${sx},${sy}`]);
+  const q = [[sx, sy]];
+  let best = null, bd = Infinity;
+  for (let h = 0; h < q.length && h < 900; h++) {
+    const [x, y] = q[h];
+    const d = (x - gx) ** 2 + (y - gy) ** 2;
+    if (d < bd) { bd = d; best = [x, y]; }
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy, k = `${nx},${ny}`;
+      if (seen.has(k) || !w.walkable(nx, ny)) continue;
+      seen.add(k); q.push([nx, ny]);
+    }
+  }
+  return best;
+}
+
 function follow(c, dt, speed) {
   c.moving = false;
   if (!c.path || c.pi >= c.path.length) return true;
@@ -73,6 +92,8 @@ export function shed(w, c, n) {
 }
 
 function startIdle(c, w, lo = 1, hi = 3) {
+  c.lureBowl = null;
+  c.partial = false;
   c.state = 'idle';
   c.path = null;
   c.t = range(w.rng, lo, hi);
@@ -105,8 +126,19 @@ function startLure(w, c) {
     c.state = 'lure';
     c.lureBowl = b;
     c.eatT = 0;
+    c.gallopT = 0;
+    w.ev.push({ t: 'meow', x: c.x, y: c.y, kind: 'call' });
   } else {
+    // дойти до миски нельзя (стена, пуфик): бежим к ближайшей доступной точке и ждём там
     c.ignoreBowl = b;
+    const best = nearestReachable(w, c, b.tx, b.ty);
+    if (best && goTo(w, c, best[0], best[1])) {
+      c.state = 'lure';
+      c.lureBowl = b;
+      c.partial = true;
+      c.gallopT = 0;
+      w.ev.push({ t: 'meow', x: c.x, y: c.y, kind: 'call' });
+    }
   }
 }
 
@@ -145,7 +177,7 @@ export function updateCat(w, c, dt) {
   const busy = c.state === 'hug' || c.state === 'eat';
   if (!busy) {
     const b = w.bowl;
-    if (b && !b.done && c.fed <= 0 && c.state !== 'lure' && c.ignoreBowl !== b) startLure(w, c);
+    if (b && c.fed <= 0 && c.state !== 'lure' && c.ignoreBowl !== b) startLure(w, c);
     else if (!b && w.laser.on && c.state !== 'laser') startLaser(w, c);
     else if (c.state === 'laser' && !w.laser.on) { startIdle(c, w, 1, 2); c.pounce = false; }
     else if (c.state === 'lure' && (!w.bowl || w.bowl !== c.lureBowl)) startIdle(c, w, 0.5, 1.5);
@@ -215,7 +247,10 @@ export function updateCat(w, c, dt) {
     case 'lure': {
       const b = w.bowl;
       if (!b) { startIdle(c, w); break; }
+      c.gallopT -= dt;
+      if (c.gallopT <= 0 && c.moving) { c.gallopT = 0.34; w.ev.push({ t: 'gallop', x: c.x, y: c.y }); }
       if (follow(c, dt, CFG.catLureSpeed)) {
+        if (c.partial) { c.partial = false; c.state = 'wait'; c.moving = false; break; }
         c.state = 'eat';
         c.eatT = CFG.eatTime;
         b.eaters++;
@@ -223,13 +258,18 @@ export function updateCat(w, c, dt) {
       }
       break;
     }
+    case 'wait': {
+      c.moving = false;
+      if (!w.bowl || w.bowl !== c.lureBowl) startIdle(c, w, 0.5, 1.5);
+      break;
+    }
     case 'eat': {
       c.moving = false;
       c.eatT -= dt;
       const b = w.bowl;
       if (!b || c.eatT <= 0) {
-        if (b) b.done = true;
-        c.fed = 16;
+        if (b) b.fedOnce = true;
+        c.fed = 5;
         w.ev.push({ t: 'meow', x: c.x, y: c.y, kind: 'happy' });
         startIdle(c, w, 0.5, 1.5);
       }

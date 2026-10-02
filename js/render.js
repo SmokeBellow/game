@@ -1,5 +1,5 @@
 // Отрисовка комнаты на пиксельном canvas 384x224.
-import { TILE, VW, VH, FURN, WORLDS } from './defs.js';
+import { TILE, VW, VH, FURN, WORLDS, CFG } from './defs.js';
 import { getArt } from './art.js';
 import { THEMES } from './sprites_props.js';
 import { hash2 } from './px.js';
@@ -144,10 +144,12 @@ export class Renderer {
     list.push({ y: world.player.y, fn: () => this.drawPlayer(ctx, world, t) });
     list.sort((a, b) => a.y - b.y);
     for (const o of list) o.fn();
+    this.drawOccluded(ctx, world);
 
     this.drawLaser(ctx, world, t);
     this.drawParticles(ctx, t);
     this.drawMotes(ctx, t);
+    if (this.theme.tint) { ctx.fillStyle = this.theme.tint; ctx.fillRect(0, 0, VW, VH); }
     ctx.drawImage(this.art.vignette, 0, 0);
     ctx.restore();
   }
@@ -178,6 +180,12 @@ export class Renderer {
         ctx.fillStyle = 'rgba(30,12,40,0.22)';
         ctx.fillRect(Math.round(x - 3), Math.round(y + 3), 6, 2);
       }
+      if (w.pulled) {
+        const p = world.player, dx = p.x - x, dy = p.y - 6 - y, m = Math.hypot(dx, dy) || 1;
+        ctx.strokeStyle = 'rgba(138,255,192,0.55)';
+        ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, Math.round(y) + 0.5); ctx.lineTo(Math.round(x - (dx / m) * 7) + 0.5, Math.round(y - (dy / m) * 7) + 0.5); ctx.stroke();
+        if (Math.random() < 0.3) this.parts.push({ k: 'spark', x, y, vx: (dx / m) * 18, vy: (dy / m) * 18, life: 0.3, max: 0.3, col: '#8affc0' });
+      }
       ctx.drawImage(sp.c, Math.round(x - sp.ax), Math.round(y - sp.ay + 3 - lift + (w.fly ? 0 : bob)));
     }
     // клубок и усилители
@@ -200,6 +208,31 @@ export class Renderer {
     }
   }
 
+  // шерсть, клубок и батарейки за высокой мебелью просвечивают поверх неё,
+  // чтобы последнюю шерстинку никогда не приходилось искать вслепую
+  drawOccluded(ctx, world) {
+    const rects = world.furn.map((f) => [f.tx * TILE - 1, f.ty * TILE - f.extra - 1, (f.tx + f.w) * TILE + 1, f.ty * TILE]);
+    if (world.boss) rects.push([world.boss.tx * TILE - 8, world.boss.ty * TILE - 12, world.boss.tx * TILE + 56, world.boss.ty * TILE]);
+    for (const c of world.crates) rects.push([c.x - 1, c.y - 4, c.x + TILE + 1, c.y + TILE]);
+    const hidden = (x, y) => rects.some((r) => x + 5 > r[0] && x - 5 < r[2] && y + 5 > r[1] && y - 3 < r[3]);
+    const A = this.art;
+    ctx.globalAlpha = 0.75;
+    for (const w of world.wools) {
+      if (w.taken || w.fly || !hidden(w.x, w.y)) continue;
+      const sp = A.wool[Math.floor(hash2(w.id, 1) * 2)];
+      ctx.drawImage(sp.c, Math.round(w.x - sp.ax), Math.round(w.y - sp.ay + 3 + Math.sin(w.age * 2.4 + w.id)));
+    }
+    const y = world.yarn;
+    if (y && !y.taken && hidden(y.x, y.y)) {
+      const sp = A.yarn[this.yarnCol];
+      ctx.drawImage(sp.c, Math.round(y.x - sp.ax), Math.round(y.y - sp.ay + 5));
+    }
+    for (const it of world.items) {
+      if (!it.taken && hidden(it.x, it.y)) ctx.drawImage(A.turbo.c, Math.round(it.x - A.turbo.ax), Math.round(it.y - A.turbo.ay + 8));
+    }
+    ctx.globalAlpha = 1;
+  }
+
   drawFurn(ctx, f) {
     const sp = this.art.furn(f.type, this.themeName, (f.tx * 7 + f.ty) % 4);
     const fp = FURN[f.type];
@@ -207,7 +240,8 @@ export class Renderer {
     if (f.type === 'l') { // тёплое свечение у торшера
       const cx = f.tx * TILE + 8, cy = f.ty * TILE - 14;
       const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, 34);
-      g.addColorStop(0, 'rgba(255,230,150,0.35)'); g.addColorStop(1, 'rgba(255,230,150,0)');
+      const k = this.theme.tint ? 0.55 : 0.35;
+      g.addColorStop(0, `rgba(255,230,150,${k})`); g.addColorStop(1, 'rgba(255,230,150,0)');
       ctx.fillStyle = g; ctx.fillRect(cx - 36, cy - 36, 72, 72);
     }
     void fp;
@@ -235,6 +269,22 @@ export class Renderer {
       g.addColorStop(0, 'rgba(120,255,190,0.45)'); g.addColorStop(1, 'rgba(120,255,190,0)');
       ctx.fillStyle = g; ctx.fillRect(p.x - 26, p.y - 34, 52, 52);
       if (Math.random() < 0.5) this.parts.push({ k: 'spark', x: p.x + (Math.random() - 0.5) * 14, y: p.y - 4, vx: 0, vy: -10, life: 0.4, max: 0.4, col: '#8affc0' });
+    }
+    if (p.turbo > 0) {
+      // сжимающиеся кольца показывают радиус притяжения
+      const R = CFG.turboPullRadius, cx = p.x, cy = p.y - 6;
+      for (let k = 0; k < 3; k++) {
+        const ph = (t * 1.1 + k / 3) % 1;
+        const r = R * (1 - ph) + 8;
+        const n = Math.max(10, Math.round(r / 3.2));
+        ctx.fillStyle = '#8affc0';
+        ctx.globalAlpha = 0.9 * Math.min(1, ph * 3) * (1 - ph * 0.5) * Math.min(1, p.turbo);
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * 6.283 + t * 1.5;
+          ctx.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r * 0.85), 2, 2);
+        }
+      }
+      ctx.globalAlpha = 1;
     }
     // лёгкое «приседание» при остановке на льду
     ctx.drawImage(fr.c, Math.round(p.x - fr.ax), Math.round(p.y - fr.ay));

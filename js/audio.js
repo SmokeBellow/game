@@ -142,6 +142,9 @@ export class Sound {
     if (kind === 'alert') {
       this.tone(760, 0.18, { type: 'sawtooth', vol: 0.08, slide: 300, lp: 1800 });
       this.tone(1100, 0.12, { type: 'square', vol: 0.03, delay: 0.1, lp: 1500 });
+    } else if (kind === 'call') {
+      this.tone(620, 0.22, { type: 'sawtooth', vol: 0.06, slide: 260, lp: 1700 });
+      this.tone(900, 0.16, { type: 'sine', vol: 0.05, slide: -250, delay: 0.1 });
     } else if (kind === 'happy') {
       this.purr(0.9, 0.09);
       this.tone(520, 0.3, { type: 'sine', vol: 0.12, slide: 180 });
@@ -163,6 +166,19 @@ export class Sound {
     lfo.connect(lg); lg.connect(am.gain);
     o.connect(f); f.connect(am); am.connect(g); g.connect(this.sfxGain);
     o.start(t); lfo.start(t); o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
+  }
+
+  // «ты-гы-дык»: быстрый топот лапок, когда кошка бежит к миске
+  gallop() {
+    const now = performance.now();
+    if (now - (this.lastGallop || 0) < 200) return;
+    this.lastGallop = now;
+    this.noise(0.03, { vol: 0.07, lp: 800 });
+    this.tone(180, 0.05, { type: 'sine', vol: 0.09, slide: -60 });
+    this.noise(0.03, { vol: 0.06, lp: 1000, delay: 0.075 });
+    this.tone(210, 0.05, { type: 'sine', vol: 0.07, slide: -60, delay: 0.075 });
+    this.noise(0.05, { vol: 0.1, lp: 650, delay: 0.17 });
+    this.tone(130, 0.08, { type: 'sine', vol: 0.12, slide: -50, delay: 0.17 });
   }
 
   hug() { this.purr(1.3, 0.12); this.tone(880, 0.2, { type: 'sine', vol: 0.12, delay: 0.05 }); this.tone(1174, 0.25, { type: 'sine', vol: 0.1, delay: 0.15 }); }
@@ -194,6 +210,7 @@ export class Sound {
         case 'step': this.step(e.ice); break;
         case 'meow': this.meow(e.kind); break;
         case 'hug': this.hug(); break;
+        case 'gallop': this.gallop(); break;
         case 'shed': this.shed(); break;
         case 'land': this.land(); break;
         case 'push': this.push(); break;

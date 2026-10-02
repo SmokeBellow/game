@@ -8,6 +8,7 @@ import { Input } from './input.js';
 import { Sound } from './audio.js';
 import * as store from './save.js';
 import { HATS } from './sprites_chars.js';
+import * as rewards from './rewards.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -53,7 +54,7 @@ let demoT = 0;
 function currentHat() {
   const d = store.data();
   const h = HATS.find((x) => x.id === d.hat);
-  return h && store.totalStars() >= h.stars ? h.id : 'none';
+  return h && rewards.isUnlocked(h.id, d.levels) ? h.id : 'none';
 }
 function applyHat() { art.setHat(currentHat()); }
 
@@ -204,18 +205,18 @@ let charAnim = null;
 function buildHatRow() {
   const row = $('#hat-row');
   row.innerHTML = '';
-  const stars = store.totalStars();
+  const d = store.data();
   const cur = currentHat();
   HATS.forEach((h) => {
-    const ok = stars >= h.stars;
+    const ok = rewards.isUnlocked(h.id, d.levels);
     const b = document.createElement('button');
     b.className = `hat-btn${ok ? '' : ' locked'}${h.id === cur ? ' sel' : ''}`;
-    b.innerHTML = `<img alt=""><span>${ok ? h.name : `★ ${h.stars}`}</span>`;
+    b.innerHTML = `<img alt=""><span>${ok ? h.name : rewards.unlockText(h.id)}</span>`;
     $('img', b).src = art.hatIcon(h.id).toDataURL();
-    b.title = ok ? h.name : `Откроется за ${h.stars} звёзд`;
+    b.title = ok ? h.name : rewards.unlockText(h.id);
     if (ok) b.onclick = () => {
       sound.unlock(); sound.click();
-      store.data().hat = h.id; store.save();
+      d.hat = h.id; store.save();
       applyHat(); buildHatRow(); if (demoWorld) startDemo();
     };
     row.appendChild(b);
@@ -285,7 +286,7 @@ function showMap() {
       const b = document.createElement('button');
       b.className = `lvl${unlocked ? '' : ' locked'}${l.id === LEVELS.length ? ' boss' : ''}`;
       const st = r ? r.stars.map((s) => (s ? '★' : '<i>★</i>')).join('') : '<i>★★★</i>';
-      b.innerHTML = `${l.intro && unlocked && !d.seen[l.intro] ? '<span class="new">новое</span>' : ''}${r && r.yarn ? '<img class="yrn" alt="клубок">' : ''}<span class="n">${l.id}</span><span class="nm">${l.name}</span><span class="st">${unlocked ? st : '🔒'}</span>`;
+      b.innerHTML = `${unlocked && [].concat(l.intro || []).some((k) => !d.seen[k]) ? '<span class="new">новое</span>' : ''}${r && r.yarn ? '<img class="yrn" alt="клубок">' : ''}<span class="n">${l.id}</span><span class="nm">${l.name}</span><span class="st">${unlocked ? st : '🔒'}</span>`;
       const y = $('.yrn', b);
       if (y) y.src = art.yarn[(l.id * 3) % 8].c.toDataURL();
       if (unlocked) b.onclick = () => {
@@ -380,9 +381,10 @@ function startLevel(id) {
   b.classList.add('on');
   setTimeout(() => b.classList.remove('on'), 2400);
 
-  if (def.intro && !d.seen[def.intro]) {
+  state.introQueue = [].concat(def.intro || []).filter((k) => !d.seen[k]);
+  if (state.introQueue.length) {
     state.overlay = true;
-    setTimeout(() => openIntro(def.intro, w.theme), 900);
+    setTimeout(() => openIntro(state.introQueue.shift(), w.theme), 900);
   } else if (def.hint) {
     setTimeout(() => toast(hintFor(def)), 2600);
   }
@@ -412,6 +414,11 @@ function closeIntro() {
   if (state.introKey) { d.seen[state.introKey] = true; store.save(); state.introKey = null; }
   input.clearEdges();
   const def = LEVELS[state.levelId - 1];
+  if (state.introQueue && state.introQueue.length) {
+    const theme = WORLDS[def.world - 1].theme;
+    setTimeout(() => openIntro(state.introQueue.shift(), theme), 250);
+    return;
+  }
   if (def.hint) setTimeout(() => toast(hintFor(def)), 400);
 }
 $('#intro-ok').onclick = () => { sound.click(); closeIntro(); };
@@ -445,13 +452,12 @@ function showWin() {
   state.winShown = true;
   const w = state.world;
   const res = w.result();
-  const starsBefore = store.totalStars();
+  const hatsBefore = new Set(HATS.filter((h) => rewards.isUnlocked(h.id, store.data().levels)).map((h) => h.id));
   const saved = store.recordLevel(state.levelId, res);
-  const starsAfter = store.totalStars();
-  const newHat = HATS.find((h) => h.stars > starsBefore && h.stars <= starsAfter);
+  const newHat = HATS.find((h) => !hatsBefore.has(h.id) && rewards.isUnlocked(h.id, store.data().levels));
   renderer.confetti(36);
   sound.setDuck(0.6);
-  const worldDone = state.levelId % 5 === 0 && state.levelId < LEVELS.length;
+  const worldDone = rewards.lastLevelOfWorld(LEVELS[state.levelId - 1].world) === state.levelId && state.levelId < LEVELS.length;
   $('#win-title').textContent = worldDone
     ? `Мир «${WORLDS[LEVELS[state.levelId - 1].world - 1].name}» убран!`
     : LEVEL_PHRASES[(state.levelId * 7 + Math.floor(Math.random() * 3)) % LEVEL_PHRASES.length];

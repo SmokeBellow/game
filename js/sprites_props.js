@@ -4,30 +4,35 @@ import { mk, rect, dot, rrect, ellipse, outline, shade, mix, hash2 } from './px.
 
 export const THEMES = {
   living: {
+    tint: '',
     wall: '#e6bf90', wallD: '#d6a972', stripe: '#dcb07e', wains: '#8f5d3a', wainsL: '#a97449', trim: '#fff1d6',
     floorA: '#c98f55', floorB: '#bf844b', seam: '#8d5c33', floorHi: '#d9a068',
     sofa: '#21a879', cush: '#3c78b4', rug: '#c04a3c', rugB: '#f1d8a8', wood: '#a8693a', accent: '#e8b323',
     sky: ['#ffd9a0', '#ff9f68'], light: '#fff0c0', fur: 'wood',
   },
   bedroom: {
+    tint: 'rgba(46,30,120,0.2)',
     wall: '#d9b6d6', wallD: '#c79cc4', stripe: '#cfa8cc', wains: '#7c5a82', wainsL: '#94709a', trim: '#fbeaf8',
     floorA: '#dcb78e', floorB: '#d0aa80', seam: '#a8825a', floorHi: '#e8c9a4',
     sofa: '#d98aa8', cush: '#7a6fc4', rug: '#79b5cc', rugB: '#f4efe0', wood: '#b07a52', accent: '#f2c35a',
     sky: ['#c9b6ff', '#7b6ac8'], light: '#e8dcff', fur: 'wood',
   },
   kitchen: {
+    tint: 'rgba(255,255,235,0.05)',
     wall: '#bde3d2', wallD: '#a3d3bd', stripe: '#b0dbc7', wains: '#f1f5ef', wainsL: '#ffffff', trim: '#ffffff',
     floorA: '#f3e8d0', floorB: '#c7dccd', seam: '#b9b49c', floorHi: '#ffffff',
     sofa: '#e0674f', cush: '#e8b323', rug: '#e0674f', rugB: '#fff1d6', wood: '#d6a56c', accent: '#e0674f',
     sky: ['#a8dcff', '#6cb8f0'], light: '#fffbe0', fur: 'light',
   },
   study: {
+    tint: 'rgba(8,24,70,0.2)',
     wall: '#69977f', wallD: '#567f69', stripe: '#5f8c75', wains: '#4a3426', wainsL: '#62463a', trim: '#e8d9b0',
     floorA: '#8e5b3b', floorB: '#7f4f32', seam: '#55321f', floorHi: '#a06c4a',
     sofa: '#7a3a45', cush: '#d9a24a', rug: '#7a3a45', rugB: '#d9b968', wood: '#6b4630', accent: '#d9a24a',
     sky: ['#2c3566', '#141a3c'], light: '#ffe9a8', fur: 'dark',
   },
   manor: {
+    tint: 'rgba(255,190,110,0.09)',
     wall: '#8189b8', wallD: '#6d75a8', stripe: '#7880b0', wains: '#363a68', wainsL: '#474c80', trim: '#e6c866',
     floorA: '#ece8f1', floorB: '#bab5cf', seam: '#9a96b2', floorHi: '#ffffff',
     sofa: '#8a2f4a', cush: '#e6c866', rug: '#8a2f4a', rugB: '#e6c866', wood: '#4a3045', accent: '#e6c866',
