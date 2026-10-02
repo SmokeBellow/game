@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#2a1830">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Шерстины">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="description" content="Шерстины — уютная игра про уборку кошачьей шерсти от MurMyak Games">
   <title>Шерстины — MurMyak Games</title>
   <link rel="icon" type="image/png" href="images/favicon.png">
@@ -46,6 +52,7 @@
       <div class="menu-stats" id="menu-stats"></div>
     </div>
     <div class="corner-tools">
+      <button class="icon-btn" id="m-fs" title="Полный экран" aria-label="Полный экран">⛶</button>
       <button class="icon-btn" id="m-music" title="Музыка" aria-label="Музыка">♪</button>
       <button class="icon-btn" id="m-reset" title="Сбросить прогресс" aria-label="Сбросить прогресс">⟲</button>
     </div>
@@ -163,6 +170,7 @@
           <h3>Пауза</h3>
           <label class="slider">Музыка <input type="range" id="vol-music" min="0" max="100"></label>
           <label class="slider">Звуки <input type="range" id="vol-sfx" min="0" max="100"></label>
+          <button class="btn" id="p-fs">Полный экран</button>
           <button class="btn primary" id="p-resume">Продолжить</button>
           <button class="btn" id="p-restart">Заново</button>
           <button class="btn" id="p-map">К выбору комнаты</button>

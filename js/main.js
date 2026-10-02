@@ -91,13 +91,102 @@ function fadeThrough(fn, ms = 350) {
 // ------------------------------------------------------------ размеры
 function fit() {
   const vw = window.innerWidth, vh = window.innerHeight;
-  const s = Math.max(1, Math.floor(Math.min(vw / VW, vh / VH) * 4) / 4);
+  const s = Math.max(1, Math.floor(Math.min(vw / VW, vh / VH) * 32) / 32);
   stage.style.width = `${VW * s}px`;
   stage.style.height = `${VH * s}px`;
-  document.documentElement.style.setProperty('--u', `${s}px`);
+  const root = document.documentElement.style;
+  root.setProperty('--u', `${s}px`);
+  // интерфейс поверх игры не мельче ~3px на «пиксель игры», иначе на телефоне текст нечитаем
+  root.setProperty('--hu', `${Math.max(s, VW * s < 560 ? 2.6 : 3)}px`);
 }
 window.addEventListener('resize', fit);
 window.addEventListener('orientationchange', fit);
+
+
+// ------------------------------------------------------------ полный экран
+const rootEl = document.documentElement;
+const fsRequest = rootEl.requestFullscreen || rootEl.webkitRequestFullscreen;
+const fsSupported = !!fsRequest;
+const isIPhone = /iPhone|iPod/.test(navigator.userAgent);
+// игра установлена на главный экран и сама открывается без интерфейса браузера
+// (display-mode: fullscreen совпадает и при обычном полном экране через API, поэтому его учитываем только без fullscreenElement)
+const isInstalled = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches
+  || (matchMedia('(display-mode: fullscreen)').matches && !document.fullscreenElement && !document.webkitFullscreenElement);
+const isTouchDevice = matchMedia('(pointer: coarse)').matches;
+const inFullscreen = () => !!(document.fullscreenElement || document.webkitFullscreenElement) || isInstalled();
+let fsExpected = false; // мы сами запросили или закрыли режим (отличаем от выхода пользователем)
+
+let sysToastTimer = null;
+function sysToast(text, ms = 5000) {
+  let el = $('#sys-toast');
+  if (!el) { el = document.createElement('div'); el.id = 'sys-toast'; app.appendChild(el); }
+  el.textContent = text;
+  void el.offsetWidth;
+  el.classList.add('on');
+  clearTimeout(sysToastTimer);
+  sysToastTimer = setTimeout(() => el.classList.remove('on'), ms);
+}
+
+async function enterFullscreen() {
+  if (!fsSupported) return false;
+  fsExpected = true;
+  try {
+    await fsRequest.call(rootEl, { navigationUI: 'hide' });
+    // на Android в полном экране можно зафиксировать горизонтальную ориентацию
+    try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch (e) { /* не везде доступно */ }
+    return true;
+  } catch (e) { fsExpected = false; return false; }
+}
+
+async function exitFullscreen() {
+  fsExpected = true;
+  try { await (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) { /* уже вышли */ }
+  try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) { /* ок */ }
+}
+
+function updateFsButtons() {
+  const on = inFullscreen();
+  const label = on ? 'Выйти из полного экрана' : 'Полный экран';
+  const pfs = $('#p-fs');
+  if (pfs) pfs.textContent = on ? 'Выйти из полного экрана' : 'Полный экран';
+  const mfs = $('#m-fs');
+  if (mfs) { mfs.title = label; mfs.setAttribute('aria-label', label); mfs.classList.toggle('active', on); }
+  // кнопки не нужны, если режим не поддерживается и это не iPhone (там показываем подсказку)
+  const show = fsSupported || isIPhone;
+  if (pfs) pfs.style.display = show && !isInstalled() ? '' : 'none';
+  if (mfs) mfs.style.display = show && !isInstalled() ? '' : 'none';
+}
+
+async function toggleFullscreen() {
+  sound.unlock(); sound.click();
+  const d = store.data();
+  if (!fsSupported) {
+    // iPhone не умеет полноэкранный режим для страниц: единственный путь — ярлык на главном экране
+    sysToast('На iPhone: кнопка «Поделиться» → «На экран Домой». Игра будет открываться во весь экран, без адресной строки.', 8000);
+    return;
+  }
+  if (inFullscreen()) { d.settings.fullscreen = false; store.save(); await exitFullscreen(); } else { d.settings.fullscreen = true; store.save(); await enterFullscreen(); }
+  updateFsButtons();
+}
+
+document.addEventListener('fullscreenchange', () => {
+  fit(); updateFsButtons();
+  // пользователь вышел сам (кнопка «назад», жест) — больше не загоняем его в полный экран
+  if (!inFullscreen() && !fsExpected) { store.data().settings.fullscreen = false; store.save(); }
+  fsExpected = false;
+});
+document.addEventListener('webkitfullscreenchange', () => { fit(); updateFsButtons(); });
+
+// на телефоне первое же касание включает полный экран (браузер разрешает его только по жесту)
+window.addEventListener('pointerup', (e) => {
+  if (!isTouchDevice || e.pointerType !== 'touch' || !fsSupported || inFullscreen()) return;
+  const pref = store.data().settings.fullscreen;
+  if (pref === false) return;
+  enterFullscreen();
+}, { capture: true });
+
+$('#m-fs').onclick = toggleFullscreen;
+$('#p-fs').onclick = toggleFullscreen;
 
 // ------------------------------------------------------------ заставки
 function runLogo() {
@@ -681,6 +770,9 @@ async function boot() {
   sound.setVolumes(d.settings.music, d.settings.sfx);
   fit();
   applyHat();
+  if (isTouchDevice) { document.body.classList.add('touch'); input.touchMode = true; }
+  updateFsButtons();
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
   try { await Promise.all([document.fonts.load('8px "Press Start 2P"'), document.fonts.load('800 16px "Nunito"')]); } catch (e) { /* шрифты подтянутся позже */ }
   startDemo();
   requestAnimationFrame(frame);
