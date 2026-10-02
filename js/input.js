@@ -2,7 +2,9 @@
 export class Input {
   constructor(stage) {
     this.keys = new Set();
-    this.edge = { bowl: false, pause: false, restart: false, laserTap: false };
+    this.edge = { bowl: false, pause: false, restart: false, laserToggle: false };
+    this.aim = null;      // позиция мыши в координатах игры (384 x 224)
+    this.aimAt = 0;
     this.stick = { x: 0, y: 0, active: false, id: null, cx: 0, cy: 0 };
     this.btn = { laser: false };
     this.touchMode = false;
@@ -22,6 +24,7 @@ export class Input {
       this.keys.add(e.code);
       if (!this.enabled) return;
       if (e.code === 'Space' || e.code === 'KeyE') this.edge.bowl = true;
+      if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyF') this.edge.laserToggle = true;
       if (e.code === 'Escape' || e.code === 'KeyP') this.edge.pause = true;
       if (e.code === 'KeyR') this.edge.restart = true;
     });
@@ -73,11 +76,23 @@ export class Input {
     const bowl = st.querySelector('#btn-bowl');
     const laser = st.querySelector('#btn-laser');
     bowl.addEventListener('pointerdown', (e) => { e.preventDefault(); if (this.enabled) this.edge.bowl = true; });
-    laser.addEventListener('pointerdown', (e) => { e.preventDefault(); this.btn.laser = true; laser.setPointerCapture(e.pointerId); });
-    const lup = () => { this.btn.laser = false; };
-    laser.addEventListener('pointerup', lup);
-    laser.addEventListener('pointercancel', lup);
-    laser.addEventListener('lostpointercapture', lup);
+    laser.addEventListener('pointerdown', (e) => { e.preventDefault(); if (this.enabled) this.edge.laserToggle = true; });
+    // мышь: точка лазера следует за курсором, клик включает и выключает лазер
+    const cv = st.querySelector('#game');
+    const toWorld = (e) => {
+      const r = cv.getBoundingClientRect();
+      return { x: ((e.clientX - r.left) / r.width) * 384, y: ((e.clientY - r.top) / r.height) * 224 };
+    };
+    st.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      this.aim = toWorld(e); this.aimAt = performance.now();
+    });
+    st.addEventListener('pointerleave', () => { this.aim = null; });
+    st.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'mouse' || !this.enabled || e.target.closest('button, .ov')) return;
+      this.aim = toWorld(e); this.aimAt = performance.now();
+      this.edge.laserToggle = true;
+    });
     window.addEventListener('touchstart', () => { this.touchMode = true; document.body.classList.add('touch'); }, { once: true, passive: true });
   }
 
@@ -90,13 +105,14 @@ export class Input {
     if (k.has('ArrowUp') || k.has('KeyW')) y -= 1;
     if (k.has('ArrowDown') || k.has('KeyS')) y += 1;
     if (x === 0 && y === 0) { x = this.stick.x; y = this.stick.y; }
-    const laser = k.has('ShiftLeft') || k.has('ShiftRight') || k.has('KeyF') || this.btn.laser;
-    const out = { x, y, bowl: this.edge.bowl, laser };
+    const aim = this.aim && performance.now() - this.aimAt < 4000 && !this.touchMode ? this.aim : null;
+    const out = { x, y, bowl: this.edge.bowl, laserToggle: this.edge.laserToggle, aim };
     this.edge.bowl = false;
+    this.edge.laserToggle = false;
     return out;
   }
 
   takePause() { const v = this.edge.pause; this.edge.pause = false; return v; }
   takeRestart() { const v = this.edge.restart; this.edge.restart = false; return v; }
-  clearEdges() { this.edge.bowl = false; this.edge.pause = false; this.edge.restart = false; }
+  clearEdges() { this.edge.bowl = false; this.edge.pause = false; this.edge.restart = false; this.edge.laserToggle = false; }
 }

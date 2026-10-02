@@ -30,7 +30,7 @@ export class World {
     this.boss = null;
     this.bowl = null;
     this.bowlCd = 0;
-    this.laser = { on: false, x: 0, y: 0, energy: CFG.laserMax };
+    this.laser = { on: false, armed: false, x: 0, y: 0, energy: CFG.laserMax };
     this.collected = 0;
     this.score = 0;
     this.combo = 0;
@@ -235,7 +235,7 @@ export class World {
     for (const c of this.cats) updateCat(this, c, dt);
     this.updateBoss(dt);
     this.updateRobots(dt);
-    this.updatePickups();
+    this.updatePickups(dt);
     this.updateCosmetics(dt);
     if (this.comboT > 0) {
       this.comboT -= dt;
@@ -349,31 +349,45 @@ export class World {
     const p = this.player;
     if (this.bowlCd > 0) this.bowlCd -= dt;
     if (this.bowl) {
-      this.bowl.t += dt;
-      if (this.bowl.t >= CFG.bowlTime || this.bowl.done) {
-        this.ev.push({ t: 'bowlEnd', x: this.bowl.x, y: this.bowl.y });
+      const b = this.bowl;
+      b.t += dt;
+      // миска убирается, когда все прибежавшие кошки поели (или по таймеру)
+      const busy = this.cats.some((k) => k.lureBowl === b && (k.state === 'lure' || k.state === 'eat'));
+      if (b.t >= CFG.bowlTime || (b.fedOnce && !busy)) {
+        this.ev.push({ t: 'bowlEnd', x: b.x, y: b.y });
         this.bowl = null;
         this.bowlCd = CFG.bowlCooldown;
       }
     }
     if (inp.bowl && this.avail.bowl && !this.bowl && this.bowlCd <= 0 && p.frozen <= 0) this.placeBowl();
 
+    // лазер: нажатие включает и выключает, мышь может наводить точку
     const L = this.laser;
-    const want = !!inp.laser && this.avail.laser && p.frozen <= 0;
+    if (!this.avail.laser) L.armed = false;
+    if (inp.laserToggle && this.avail.laser) {
+      if (L.armed) L.armed = false;
+      else if (L.energy > 0.6) L.armed = true;
+    }
+    const want = (L.armed || !!inp.laser) && this.avail.laser;
     if (want && L.energy > 0) {
       if (!L.on) this.ev.push({ t: 'laserOn' });
       L.on = true;
       L.energy = Math.max(0, L.energy - dt);
-      // луч до препятствия
+      let dx = p.fx, dy = p.fy, reach = CFG.laserReach;
+      if (inp.aim) {
+        const ax = inp.aim.x - p.x, ay = inp.aim.y - (p.y - 4);
+        const m = Math.hypot(ax, ay);
+        if (m > 4) { dx = ax / m; dy = ay / m; reach = Math.min(m, CFG.laserReachMouse); }
+      }
       let rx = p.x, ry = p.y - 4;
-      const steps = Math.floor(CFG.laserReach / 3);
+      const steps = Math.floor(reach / 3);
       for (let i = 1; i <= steps; i++) {
-        const nx = p.x + p.fx * i * 3, ny = p.y - 4 + p.fy * i * 3;
+        const nx = p.x + dx * i * 3, ny = p.y - 4 + dy * i * 3;
         if (this.staticBlocked(Math.floor(nx / TILE), Math.floor(ny / TILE))) break;
         rx = nx; ry = ny;
       }
       L.x = rx; L.y = ry;
-      if (L.energy <= 0) { L.on = false; L.cool = true; }
+      if (L.energy <= 0) { L.on = false; L.armed = false; this.ev.push({ t: 'laserOff' }); }
     } else {
       if (L.on) this.ev.push({ t: 'laserOff' });
       L.on = false;
@@ -390,7 +404,7 @@ export class World {
     for (const [x, y] of cands) {
       const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
       if (this.walkable(tx, ty)) {
-        this.bowl = { tx, ty, x: (tx + 0.5) * TILE, y: (ty + 0.5) * TILE + 2, t: 0, eaters: 0, done: false };
+        this.bowl = { tx, ty, x: (tx + 0.5) * TILE, y: (ty + 0.5) * TILE + 2, t: 0, eaters: 0, fedOnce: false };
         this.ev.push({ t: 'bowl', x: this.bowl.x, y: this.bowl.y });
         // кот-соня просыпается на запах еды
         for (const c of this.cats) if (c.state === 'sleep') wakeCat(this, c);
@@ -459,14 +473,20 @@ export class World {
         r.x = nx; r.y = ny; return true;
       };
       if (!tryMove(r.x + sx, r.y + sy)) {
-        // скольжение вдоль стены, иначе поворот
-        const mx = tryMove(r.x + sx, r.y);
-        const my = !mx && tryMove(r.x, r.y + sy);
-        if (!mx && !my) hit = true;
+        // скольжение вдоль стены возможно только по ненулевой составляющей, иначе поворот
+        let slid = false;
+        if (sx !== 0 && sy !== 0) slid = tryMove(r.x + sx, r.y) || tryMove(r.x, r.y + sy);
+        if (!slid) hit = true;
       }
       if (hit) {
-        let d;
-        do { d = dirs[Math.floor(this.rng() * dirs.length)]; } while (d[0] === r.dx && d[1] === r.dy);
+        // новое направление выбираем только из тех, куда реально можно поехать
+        const free = dirs.filter(([ddx, ddy]) => {
+          const k = Math.hypot(ddx, ddy);
+          const nx = r.x + (ddx / k) * 3, ny = r.y + (ddy / k) * 3;
+          return !(this.boxBlocked(nx - r.hs, ny - r.hs, nx + r.hs, ny + r.hs, r)) && !(ddx === r.dx && ddy === r.dy);
+        });
+        const pool = free.length ? free : dirs;
+        const d = pool[Math.floor(this.rng() * pool.length)];
         r.dx = d[0]; r.dy = d[1]; r.bump = 0.4;
         this.ev.push({ t: 'bump', x: r.x, y: r.y });
       }
@@ -474,12 +494,21 @@ export class World {
   }
 
   // ---------- подбор шерсти и усилителей ----------
-  updatePickups() {
+  updatePickups(dt) {
     const p = this.player;
     const rad = p.turbo > 0 ? CFG.pickRadiusTurbo : CFG.pickRadius;
     const px = p.x, py = p.y - 6;
     for (const w of this.wools) {
       if (w.taken || w.fly) continue;
+      // турбо-пылесос тянет шерсть к себе, если между ними нет преград
+      if (p.turbo > 0) {
+        const d = dist(px, py, w.x, w.y);
+        if (d < CFG.turboPullRadius && d >= rad && this.clearLine(px, py, w.x, w.y)) {
+          const k = Math.min(d, (CFG.turboPullSpeed + (CFG.turboPullRadius - d) * 1.1) * dt) / d;
+          w.x += (px - w.x) * k; w.y += (py - w.y) * k;
+          w.pulled = true;
+        } else w.pulled = false;
+      }
       if (dist(px, py, w.x, w.y) < rad) this.takeWool(w, 'player');
       else {
         for (const r of this.robots) {
@@ -500,6 +529,16 @@ export class World {
       }
     }
     this.wools = this.wools.filter((w) => !w.taken);
+  }
+
+  // между точками нет стен и мебели
+  clearLine(x0, y0, x1, y1) {
+    const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 4);
+    for (let i = 1; i < n; i++) {
+      const k = i / n;
+      if (this.staticBlocked(Math.floor((x0 + (x1 - x0) * k) / TILE), Math.floor((y0 + (y1 - y0) * k) / TILE))) return false;
+    }
+    return true;
   }
 
   takeWool(w, by) {

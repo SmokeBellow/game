@@ -1,5 +1,6 @@
 // Сохранения в localStorage. Все обращения обёрнуты в try/catch: игра работает и без хранилища.
-const KEY = 'murmyak-sherstiny-v2';
+const KEY = 'murmyak-sherstiny-v3';
+const OLD_KEY = 'murmyak-sherstiny-v2'; // в версии 2 было 25 комнат: переносим только настройки
 
 const defaults = () => ({
   character: null,
@@ -14,7 +15,14 @@ let state = defaults();
 
 export function load() {
   try {
-    const raw = localStorage.getItem(KEY);
+    let raw = localStorage.getItem(KEY);
+    if (!raw) {
+      const old = localStorage.getItem(OLD_KEY);
+      if (old) {
+        const o = JSON.parse(old);
+        raw = JSON.stringify({ character: o.character, settings: o.settings, seen: o.seen });
+      }
+    }
     if (raw) {
       const p = JSON.parse(raw);
       state = { ...defaults(), ...p, settings: { ...defaults().settings, ...(p.settings || {}) } };

@@ -200,12 +200,14 @@ function drawSide(x, who, step, b, mode) {
 
 // ---------------------------------------------------------------- шапочки (награды за звёзды)
 export const HATS = [
-  { id: 'none', name: 'Без шапки', stars: 0 },
-  { id: 'beanie', name: 'Вязаная шапка', stars: 8 },
-  { id: 'bow', name: 'Бант', stars: 20 },
-  { id: 'ears', name: 'Кошачьи ушки', stars: 32 },
-  { id: 'chef', name: 'Колпак повара', stars: 46 },
-  { id: 'crown', name: 'Корона уюта', stars: 60 },
+  { id: 'none', name: 'Без шапки' },
+  { id: 'beanie', name: 'Вязаная шапка' },
+  { id: 'nightcap', name: 'Ночной колпак' },
+  { id: 'chef', name: 'Колпак повара' },
+  { id: 'grad', name: 'Шапочка выпускника' },
+  { id: 'crown', name: 'Корона уюта' },
+  { id: 'bow', name: 'Бант' },
+  { id: 'ears', name: 'Кошачьи ушки' },
 ];
 
 // b — смещение головы по вертикали; side — вид сбоку (голова смещена влево на 1 px)
@@ -234,6 +236,16 @@ function drawHat(x, hat, dir, b) {
       rect(x, x0, -1 + b, w, 2, '#e6e2da');
       rect(x, x0 - 1, -4 + b, w + 2, 3, '#ffffff'); rect(x, x0 + 1, -6 + b, w - 2, 3, '#ffffff');
       rect(x, x0 + 2, -7 + b, w - 4, 1, '#ffffff'); dot(x, x0 + 3, -5 + b, '#d8d4cc'); dot(x, x0 + w - 4, -3 + b, '#d8d4cc');
+      break;
+    case 'nightcap':
+      rect(x, x0, -1 + b, w, 3, '#5a6ad0'); rect(x, x0, 1 + b, w, 1, '#e8ecff');
+      rect(x, x0 + 1, -3 + b, w - 3, 2, '#5a6ad0'); rect(x, x0 + w - 4, -4 + b, 3, 2, '#5a6ad0');
+      rect(x, x0 + w - 2, -3 + b, 3, 3, '#5a6ad0'); rect(x, x0 + w, -1 + b, 2, 2, '#ffffff');
+      dot(x, x0 + 3, -1 + b, '#ffe27a'); dot(x, x0 + 6, -2 + b, '#ffe27a');
+      break;
+    case 'grad':
+      rect(x, x0 + 1, 0 + b, w - 2, 2, '#2a2a33'); rect(x, x0 - 1, -2 + b, w + 2, 2, '#3a3a46'); rect(x, x0 + 1, -3 + b, w - 2, 1, '#4a4a58');
+      rect(x, x0 + w - 1, -2 + b, 1, 5, '#f4c430'); rect(x, x0 + w - 2, 3 + b, 3, 2, '#f4c430');
       break;
     case 'crown':
       rect(x, x0, -1 + b, w, 3, '#f4c430'); rect(x, x0, 1 + b, w, 1, '#c99a10');

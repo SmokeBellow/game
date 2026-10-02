@@ -74,6 +74,20 @@ function staticCheck(def) {
       if (x + 5 > r[0] && x - 5 < r[2] && y + 5 > r[1] && y - 3 < r[3]) fail(def.id, `${k} в (${Math.floor(x / TILE) - IN_X},${Math.floor(y / TILE) - IN_Y}) закрыта мебелью (${r[4]})`);
     }
   }
+  // роботы не должны застревать: ездим 40 секунд и ждём, что каждый сместится
+  if (w.robots.length) {
+    const sim = new World(def);
+    const last = sim.robots.map((r) => ({ x: r.x, y: r.y, still: 0, max: 0 }));
+    for (let i = 0; i < 60 * 40; i++) {
+      sim.update(1 / 60, {}); sim.ev.length = 0;
+      sim.robots.forEach((r, k) => {
+        const t = last[k];
+        if (Math.hypot(r.x - t.x, r.y - t.y) < 0.02) { t.still++; t.max = Math.max(t.max, t.still); } else t.still = 0;
+        t.x = r.x; t.y = r.y;
+      });
+    }
+    last.forEach((t, k) => { if (t.max > 60 * 4) fail(def.id, `робот ${k + 1} застрял (стоял ${(t.max / 60).toFixed(1)} с)`); });
+  }
   if (w.total < 5) fail(def.id, 'слишком мало шерсти');
   if (w.total > 60) fail(def.id, `слишком много шерсти: ${w.total}`);
   return w;
