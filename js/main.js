@@ -9,6 +9,7 @@ import { Sound } from './audio.js';
 import * as store from './save.js';
 import { HATS } from './sprites_chars.js';
 import * as rewards from './rewards.js';
+import * as ach from './achievements.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -58,8 +59,8 @@ function currentHat() {
 }
 function applyHat() { art.setHat(currentHat()); }
 
-const SCREENS = ['logo', 'title', 'menu', 'char', 'map', 'about', 'ending', 'game'];
-const BG_SCREENS = new Set(['menu', 'char', 'map', 'about']);
+const SCREENS = ['logo', 'title', 'menu', 'char', 'map', 'ach', 'about', 'ending', 'game'];
+const BG_SCREENS = new Set(['menu', 'char', 'map', 'ach', 'about']);
 const hideTimers = {};
 
 function show(name) {
@@ -155,6 +156,8 @@ function updateMenuStats() {
   $('#m-play').textContent = hasProgress ? 'Продолжить' : 'Играть';
   $('#menu-stats').innerHTML = `<span>★ ${store.totalStars()} / ${LEVELS.length * 3}</span><span>🧶 ${store.totalYarn()} / ${LEVELS.length}</span>`;
   $('#m-music').textContent = d.settings.music > 0 ? '♪' : '✕';
+  const am = $('#m-ach');
+  if (am) am.textContent = `Достижения ${ach.count(d)} / ${ach.ACH.length}`;
 }
 
 function showMenu() {
@@ -194,6 +197,10 @@ $('#m-reset').onclick = () => {
   b.className = 'btn'; b.id = 'm-levels'; b.textContent = 'Комнаты';
   $('#m-play').after(b);
   b.onclick = () => { sound.unlock(); sound.click(); showMap(); };
+  const a = document.createElement('button');
+  a.className = 'btn'; a.id = 'm-ach'; a.textContent = 'Достижения';
+  $('#m-char').after(a);
+  a.onclick = () => { sound.unlock(); sound.click(); showAch(); };
 }
 
 $$('[data-back]').forEach((b) => { b.onclick = () => { sound.back(); showMenu(); }; });
@@ -305,6 +312,63 @@ function showMap() {
   if (cur && cards[cur.world - 1]) list.scrollTop = Math.max(0, cards[cur.world - 1].offsetTop - 120);
 }
 
+// ------------------------------------------------------------ достижения
+function achIcon(a) {
+  const theme = WORLDS[(state.levelId ? LEVELS[state.levelId - 1].world : 1) - 1].theme;
+  if (a.icon === 'hat') return art.hatIcon('chef').toDataURL();
+  return art.icon(a.icon, theme).toDataURL();
+}
+
+function showAch() {
+  show('ach');
+  const d = store.data();
+  const c = ach.context(d);
+  const grid = $('#ach-grid');
+  grid.innerHTML = '';
+  for (const a of ach.ACH) {
+    const done = !!d.ach[a.id];
+    const pr = ach.progress(a, c);
+    const hidden = a.secret && !done;
+    const card = document.createElement('div');
+    card.className = `ach-card ${done ? 'done' : 'locked'}`;
+    const bar = pr && !done ? `<div class="bar"><i style="width:${Math.round((pr.value / pr.goal) * 100)}%"></i></div><div class="n">${pr.value} / ${pr.goal}</div>` : '';
+    card.innerHTML = `<img alt=""><div><div class="t">${hidden ? '???' : a.name}</div><div class="d">${hidden ? 'Секретное достижение' : a.desc}</div>${bar}</div>`;
+    $('img', card).src = hidden ? art.icon('key').toDataURL() : achIcon(a);
+    grid.appendChild(card);
+  }
+  $('#ach-total').textContent = `🏆 ${ach.count(d)} / ${ach.ACH.length}`;
+}
+
+const achQueue = [];
+let achBusy = false;
+function showAchToast() {
+  if (achBusy || !achQueue.length) return;
+  achBusy = true;
+  const a = achQueue.shift();
+  $('#ach-toast-icon').src = achIcon(a);
+  $('#ach-toast-name').textContent = a.name;
+  $('#ach-toast').classList.add('on');
+  sound.ach();
+  setTimeout(() => {
+    $('#ach-toast').classList.remove('on');
+    setTimeout(() => { achBusy = false; showAchToast(); }, 450);
+  }, 3000);
+}
+
+function liveOf(w, committed = false) {
+  return {
+    stats: committed ? {} : w.stats, hugs: committed ? 0 : w.hugs, maxCombo: committed ? 0 : w.maxCombo, roomHugs: w.hugs,
+    won: w.state === 'won', cheated: w.cheated, hasProwler: (w.def.cats || []).some((c) => c.prowl),
+  };
+}
+
+function awardAchievements(w, committed = false) {
+  const fresh = ach.check(store.data(), liveOf(w, committed));
+  for (const a of fresh) { achQueue.push(a); (state.runAch = state.runAch || []).push(a); }
+  showAchToast();
+  return fresh;
+}
+
 // ------------------------------------------------------------ об игре и финал
 let creditTimers = [];
 function showAbout(afterEnding) {
@@ -351,6 +415,7 @@ function startLevel(id) {
   state.paused = false;
   state.overlay = false;
   state.winShown = false;
+  state.runAch = [];
   $$('.ov').forEach((o) => o.classList.remove('on'));
   $('#toast').classList.remove('on');
   const d = store.data();
@@ -447,6 +512,42 @@ $('#vol-sfx').oninput = (e) => {
 };
 $('#vol-sfx').onchange = () => sound.collect(1);
 
+// ---- секретный код: засчитывает комнату сразу (без звёзд за скорость и клубок, без достижений)
+const CHEAT_WORDS = new Set(['мурмяк', 'murmyak']);
+const CHEAT_KEYS = ['iddqd', 'шввйв']; // набирается прямо во время игры
+const normCode = (v) => v.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]/g, '');
+
+function applyCheat() {
+  const w = state.world;
+  if (!w || w.state !== 'play') return false;
+  w.cheatWin();
+  toast('Секретный код принят!', 2500);
+  return true;
+}
+
+function submitCheat() {
+  const inp = $('#cheat-input');
+  const msg = $('#cheat-msg');
+  if (CHEAT_WORDS.has(normCode(inp.value))) {
+    inp.value = ''; msg.textContent = ''; inp.blur();
+    setPause(false);
+    applyCheat();
+  } else {
+    msg.textContent = 'Нет такого кода'; msg.className = 'bad';
+    inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
+  }
+}
+$('#cheat-ok').onclick = () => { sound.click(); submitCheat(); };
+$('#cheat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitCheat(); e.stopPropagation(); });
+$('#cheat-input').addEventListener('input', () => { $('#cheat-msg').textContent = ''; });
+
+let keyBuf = '';
+window.addEventListener('keydown', (e) => {
+  if (state.mode !== 'game' || state.paused || state.overlay || e.target.tagName === 'INPUT' || e.key.length !== 1) return;
+  keyBuf = (keyBuf + e.key.toLowerCase()).slice(-8);
+  if (CHEAT_KEYS.some((k) => keyBuf.endsWith(k))) { keyBuf = ''; applyCheat(); }
+});
+
 // ---- результаты
 function showWin() {
   state.winShown = true;
@@ -454,14 +555,20 @@ function showWin() {
   const res = w.result();
   const hatsBefore = new Set(HATS.filter((h) => rewards.isUnlocked(h.id, store.data().levels)).map((h) => h.id));
   const saved = store.recordLevel(state.levelId, res);
+  store.commitStats(w);
+  awardAchievements(w, true);
+  const freshAch = state.runAch || [];
   const newHat = HATS.find((h) => !hatsBefore.has(h.id) && rewards.isUnlocked(h.id, store.data().levels));
   renderer.confetti(36);
   sound.setDuck(0.6);
   const worldDone = rewards.lastLevelOfWorld(LEVELS[state.levelId - 1].world) === state.levelId && state.levelId < LEVELS.length;
-  $('#win-title').textContent = worldDone
+  $('#win-title').textContent = res.cheated ? 'Секретный код сработал!' : worldDone
     ? `Мир «${WORLDS[LEVELS[state.levelId - 1].world - 1].name}» убран!`
     : LEVEL_PHRASES[(state.levelId * 7 + Math.floor(Math.random() * 3)) % LEVEL_PHRASES.length];
-  const lines = [
+  const lines = res.cheated ? [
+    { ok: true, text: 'Комната убрана секретным кодом' },
+    { ok: false, text: `Быстрее ${fmtTime(res.par)}: с кодом не считается` },
+  ] : [
     { ok: res.stars[0], text: 'Комната убрана' },
     { ok: res.stars[1], text: `Быстрее ${fmtTime(res.par)} (у тебя ${fmtTime(res.time)})` },
   ];
@@ -469,6 +576,7 @@ function showWin() {
   const box = $('#win-stars');
   box.innerHTML = lines.map((l) => `<div class="star-line pending"><span class="s">★</span><span>${l.text}</span></div>`).join('');
   $('#win-stats').innerHTML = `<div><b>${res.score}</b>очки уюта</div><div><b>x${res.maxCombo}</b>лучшая цепочка</div><div><b>${w.hugs}</b>объятий</div>`;
+  $('#win-ach').textContent = freshAch.length ? `🏆 ${freshAch.length > 1 ? 'Новые достижения' : 'Новое достижение'}: ${freshAch.map((a) => a.name).join(', ')}` : '';
   $('#win-fact').textContent = newHat
     ? `🎩 Новая шапочка: ${newHat.name}! Надеть её можно в меню «Персонаж».`
     : CAT_FACTS[Math.floor(Math.random() * CAT_FACTS.length)];
@@ -542,6 +650,8 @@ function gameFrame(dt) {
   }
   renderer.draw(w);
   updateHud();
+  state.achT = (state.achT || 0) + dt;
+  if (state.achT > 0.5 && w.state === 'play') { state.achT = 0; awardAchievements(w); }
   if (w.state === 'won' && !state.winShown && w.winT > 1.1) showWin();
 }
 

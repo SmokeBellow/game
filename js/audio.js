@@ -196,6 +196,16 @@ export class Sound {
   click() { this.tone(660, 0.06, { type: 'triangle', vol: 0.12 }); }
   back() { this.tone(440, 0.07, { type: 'triangle', vol: 0.1, slide: -90 }); }
   star(i = 0) { this.tone(PENTA[2 + i * 2] || 1318, 0.5, { type: 'triangle', vol: 0.22 }); this.tone((PENTA[2 + i * 2] || 1318) * 2, 0.4, { type: 'sine', vol: 0.08, delay: 0.03 }); }
+  ach() {
+    [880, 1108.7, 1318.5, 1760].forEach((f, i) => this.tone(f, 0.35, { type: 'triangle', vol: 0.16, delay: i * 0.07 }));
+    this.tone(2093, 0.5, { type: 'sine', vol: 0.07, delay: 0.3 });
+  }
+
+  cheat() {
+    [392, 523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => this.tone(f, 0.25, { type: 'square', vol: 0.06, delay: i * 0.05, lp: 2400 }));
+    this.noise(0.5, { vol: 0.12, lp: 6000, hp: 2500, delay: 0.1 });
+  }
+
   win() {
     [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => this.tone(f, 0.55, { type: 'triangle', vol: 0.2, delay: i * 0.1 }));
     this.tone(261.6, 1.2, { type: 'sine', vol: 0.2, delay: 0 });
@@ -222,6 +232,7 @@ export class Sound {
         case 'bump': this.bump(); break;
         case 'bossWarn': this.bossWarn(); break;
         case 'bossBurst': this.bossBurst(); break;
+        case 'cheat': this.cheat(); break;
         case 'won': this.win(); break;
         default: break;
       }
