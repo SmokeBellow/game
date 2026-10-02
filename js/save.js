@@ -9,6 +9,8 @@ const defaults = () => ({
   seen: {},            // показанные подсказки механик
   settings: { music: 0.5, sfx: 0.8 },
   ending: false,
+  ach: {},             // id достижения -> время получения
+  stats: { wool: 0, robotWool: 0, bowls: 0, laserT: 0, pushes: 0, turbos: 0, fed: 0, woke: 0, hugs: 0, maxCombo: 0, cheats: 0 },
 });
 
 let state = defaults();
@@ -25,7 +27,7 @@ export function load() {
     }
     if (raw) {
       const p = JSON.parse(raw);
-      state = { ...defaults(), ...p, settings: { ...defaults().settings, ...(p.settings || {}) } };
+      state = { ...defaults(), ...p, settings: { ...defaults().settings, ...(p.settings || {}) }, stats: { ...defaults().stats, ...(p.stats || {}) } };
     }
   } catch (e) { state = defaults(); }
   return state;
@@ -50,12 +52,24 @@ export function recordLevel(id, res) {
   const stars = res.stars.map((s, i) => !!(s || (prev && prev.stars[i])));
   state.levels[id] = {
     stars,
-    time: prev ? Math.min(prev.time, res.time) : res.time,
+    time: res.cheated ? (prev ? prev.time : res.time) : (prev && !prev.cheat ? Math.min(prev.time, res.time) : res.time),
     score: prev ? Math.max(prev.score, res.score) : res.score,
     yarn: !!(res.yarn || (prev && prev.yarn)),
+    // комната пройдена честно, если когда-либо проходилась без кода
+    cheat: res.cheated ? !(prev && !prev.cheat) : false,
   };
   save();
   return state.levels[id];
+}
+
+// прибавить счётчики пройденной комнаты к накопленным (читерские прохождения не считаются)
+export function commitStats(world) {
+  if (world.cheated) { state.stats.cheats++; save(); return; }
+  const s = state.stats;
+  for (const k of ['wool', 'robotWool', 'bowls', 'laserT', 'pushes', 'turbos', 'fed', 'woke']) s[k] += world.stats[k] || 0;
+  s.hugs += world.hugs;
+  s.maxCombo = Math.max(s.maxCombo, world.maxCombo);
+  save();
 }
 
 export function isUnlocked(id) {

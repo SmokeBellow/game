@@ -37,6 +37,9 @@ export class World {
     this.comboT = 0;
     this.maxCombo = 0;
     this.hugs = 0;
+    this.cheated = false;
+    // счётчики для достижений
+    this.stats = { wool: 0, robotWool: 0, bowls: 0, laserT: 0, pushes: 0, turbos: 0, fed: 0, woke: 0 };
     this.nextId = 1;
     this.avail = Object.assign({ bowl: false, laser: false }, def.items || {});
     this.parse(def);
@@ -327,6 +330,7 @@ export class World {
     for (const k of this.cats) {
       if (k.solid) { const r = catRect(k); if (r[2] > x0 && r[0] < x1 && r[3] > y0 && r[1] < y1) return; }
     }
+    this.stats.pushes++;
     c.slide = { fx: c.x, fy: c.y, tx: ntx * TILE, ty: nty * TILE, t: 0, dur: 0.15 };
     c.tx = ntx; c.ty = nty;
     this.ev.push({ t: 'push', x: c.x + 8, y: c.y + 8 });
@@ -373,6 +377,7 @@ export class World {
       if (!L.on) this.ev.push({ t: 'laserOn' });
       L.on = true;
       L.energy = Math.max(0, L.energy - dt);
+      this.stats.laserT += dt;
       let dx = p.fx, dy = p.fy, reach = CFG.laserReach;
       if (inp.aim) {
         const ax = inp.aim.x - p.x, ay = inp.aim.y - (p.y - 4);
@@ -405,6 +410,7 @@ export class World {
       const tx = Math.floor(x / TILE), ty = Math.floor(y / TILE);
       if (this.walkable(tx, ty)) {
         this.bowl = { tx, ty, x: (tx + 0.5) * TILE, y: (ty + 0.5) * TILE + 2, t: 0, eaters: 0, fedOnce: false };
+        this.stats.bowls++;
         this.ev.push({ t: 'bowl', x: this.bowl.x, y: this.bowl.y });
         // кот-соня просыпается на запах еды
         for (const c of this.cats) if (c.state === 'sleep') wakeCat(this, c);
@@ -525,7 +531,7 @@ export class World {
       if (it.taken) continue;
       if (dist(px, py, it.x, it.y) < 11) {
         it.taken = true;
-        if (it.type === 'turbo') { p.turbo = CFG.turboTime; this.ev.push({ t: 'turbo', x: it.x, y: it.y }); }
+        if (it.type === 'turbo') { this.stats.turbos++; p.turbo = CFG.turboTime; this.ev.push({ t: 'turbo', x: it.x, y: it.y }); }
       }
     }
     this.wools = this.wools.filter((w) => !w.taken);
@@ -548,12 +554,33 @@ export class World {
       this.combo = this.comboT > 0 ? this.combo + 1 : 1;
       this.comboT = CFG.comboWindow;
       this.maxCombo = Math.max(this.maxCombo, this.combo);
+      this.stats.wool++;
       this.score += 10 * this.combo;
       this.ev.push({ t: 'collect', x: w.x, y: w.y, combo: this.combo });
     } else {
+      this.stats.robotWool++;
       this.score += 5;
       this.ev.push({ t: 'collectRobot', x: w.x, y: w.y });
     }
+  }
+
+  // секретный код: комната засчитывается сразу, но без звёзд за скорость/клубок и без достижений
+  cheatWin() {
+    if (this.state === 'won') return;
+    this.cheated = true;
+    for (const w of this.wools) {
+      if (w.taken) continue;
+      w.taken = true;
+      this.ev.push({ t: 'cheatPoof', x: w.x, y: w.y });
+    }
+    this.wools = [];
+    for (const c of this.cats) c.budget = 0;
+    if (this.boss) this.boss.waves = 0;
+    this.collected = this.total;
+    this.state = 'won';
+    this.winT = 0;
+    this.ev.push({ t: 'cheat' });
+    this.ev.push({ t: 'won' });
   }
 
   remainingWool() {
@@ -586,8 +613,9 @@ export class World {
       time: this.t,
       score: Math.round(this.score),
       maxCombo: this.maxCombo,
-      stars: [true, this.t <= par, !!(this.yarn && this.yarn.taken)],
-      yarn: !!(this.yarn && this.yarn.taken),
+      stars: this.cheated ? [true, false, false] : [true, this.t <= par, !!(this.yarn && this.yarn.taken)],
+      cheated: this.cheated,
+      yarn: !this.cheated && !!(this.yarn && this.yarn.taken),
       hasYarn: !!this.yarn,
       par,
     };

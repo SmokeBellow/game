@@ -6,6 +6,6 @@
   "description": "Шерстины — уютная игра про уборку кошачьей шерсти (MurMyak Games)",
   "scripts": {
     "start": "python3 -m http.server 8000",
-    "test": "node tests/validate.mjs --play"
+    "test": "node tests/validate.mjs --play && node tests/features.mjs"
   }
 }

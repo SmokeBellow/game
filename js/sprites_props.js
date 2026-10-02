@@ -312,6 +312,29 @@ export function iconCanvas(name, T = THEMES.living) {
     case 'robot': put(robotSprite(0)); break;
     case 'ice': { rect(x, 2, 4, 20, 16, '#cfe4f4'); rect(x, 4, 6, 4, 2, '#fff'); rect(x, 12, 12, 6, 2, '#fff'); rect(x, 8, 15, 3, 1, '#fff'); break; }
     case 'laser': { rect(x, 3, 9, 11, 5, '#4a4a58'); rect(x, 3, 9, 11, 1, '#6a6a7c'); rect(x, 14, 10, 3, 3, '#ff4a4a'); rect(x, 18, 11, 3, 1, '#ff8a8a'); dot(x, 21, 11, '#fff'); break; }
+    case 'wool': put(woolSprite(0)); break;
+    case 'yarn': put(yarnSprite(1)); break;
+    case 'star': {
+      const g = '#ffd24a', d = '#c98a10';
+      rect(x, 10, 3, 4, 3, g); rect(x, 9, 6, 6, 3, g); rect(x, 3, 9, 18, 3, g); rect(x, 5, 12, 14, 3, g);
+      rect(x, 7, 15, 10, 3, g); rect(x, 6, 18, 4, 3, g); rect(x, 14, 18, 4, 3, g);
+      rect(x, 11, 4, 2, 2, '#fff3b0'); rect(x, 6, 10, 3, 1, '#fff3b0');
+      rect(x, 6, 20, 3, 1, d); rect(x, 15, 20, 3, 1, d); rect(x, 8, 17, 8, 1, d);
+      break;
+    }
+    case 'trophy': {
+      const g = '#f4c430', d = '#b8860b';
+      rect(x, 6, 3, 12, 8, g); rect(x, 7, 11, 10, 2, g); rect(x, 10, 13, 4, 4, g); rect(x, 7, 17, 10, 3, d);
+      rect(x, 3, 4, 3, 5, g); rect(x, 18, 4, 3, 5, g); rect(x, 4, 5, 1, 3, '#00000000');
+      rect(x, 8, 4, 2, 5, '#fff0a0'); rect(x, 8, 18, 8, 1, g);
+      break;
+    }
+    case 'key': {
+      const g = '#f4c430', d = '#b8860b';
+      rect(x, 3, 7, 8, 8, g); rect(x, 5, 9, 4, 4, '#00000000'); rect(x, 5, 9, 4, 4, '#3a2a10');
+      rect(x, 11, 10, 11, 3, g); rect(x, 17, 13, 2, 4, g); rect(x, 20, 13, 2, 3, g); rect(x, 11, 12, 11, 1, d);
+      break;
+    }
     case 'cat': case 'boss': {
       const body = name === 'boss' ? '#2a2a33' : '#e88b3d', hi = name === 'boss' ? '#4a4a58' : '#f8bb78', eye = name === 'boss' ? '#e4ee55' : '#3a9a46';
       rect(x, 4, 8, 16, 13, body); rect(x, 5, 7, 14, 1, body);

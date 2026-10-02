@@ -30,6 +30,7 @@ export function wakeCat(w, c) {
   c.solid = false;
   c.state = 'idle';
   c.t = 0;
+  w.stats.woke++;
   w.ev.push({ t: 'meow', x: c.x, y: c.y, kind: 'wake' });
 }
 
@@ -269,6 +270,7 @@ export function updateCat(w, c, dt) {
       const b = w.bowl;
       if (!b || c.eatT <= 0) {
         if (b) b.fedOnce = true;
+        w.stats.fed++;
         c.fed = 5;
         w.ev.push({ t: 'meow', x: c.x, y: c.y, kind: 'happy' });
         startIdle(c, w, 0.5, 1.5);

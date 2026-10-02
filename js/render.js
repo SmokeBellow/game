@@ -76,6 +76,8 @@ export class Renderer {
           this.float(e.x, e.y - 28, 'АПЧХИ!', '#ffffff');
           break;
         case 'bump': this.burst(e.x, e.y, 2, '#ffffff', 10); break;
+        case 'cheatPoof': this.spark(e.x, e.y, '#ffe27a', 5); this.burst(e.x, e.y, 3, '#ffffff', 22); break;
+        case 'cheat': this.float(192, 80, 'КОД!', '#ffe27a'); this.confetti(30); break;
         default: break;
       }
     }
