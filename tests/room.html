@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="../css/fonts.css">
+<body style="margin:0;background:#222"><canvas id="c" style="width:1152px;height:672px;image-rendering:pixelated;display:block"></canvas>
+<script type="module">
+import {LEVELS} from '../js/levels.js';
+import {World} from '../js/world.js';
+import {Renderer} from '../js/render.js';
+await document.fonts.load('8px "Press Start 2P"');
+const q=new URLSearchParams(location.search);
+const id=+(q.get('l')||1); const ch=q.get('c')||'masha';
+const w=new World(LEVELS[id-1],{character:ch});
+const r=new Renderer(document.getElementById('c'));
+r.setWorld(w);
+const steps=+(q.get('s')||0);
+for(let i=0;i<steps;i++){ w.update(1/60,{x: (q.get('dx')||0)*1, y:(q.get('dy')||0)*1, bowl: q.get('bowl')==='1' && i===5, laser:q.get('laser')==='1'}); r.consume(w.ev); r.update(1/60); }
+r.update(0.5); r.draw(w);
+window.done=true;
+</script>
