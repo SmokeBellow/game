@@ -60,8 +60,8 @@ const INTRO = {
   rug: { icon: 'rug', title: 'Пушистый ковёр', text: 'На мягком ковре идти тяжелее. Иногда лучше обойти его стороной.' },
   cat: { icon: 'cat', title: 'Кошка линяет!', text: 'Пока кошка гуляет по комнате, она роняет шерсть. Комната будет убрана, когда шерсти не останется совсем. Спугнуть кошку нельзя.' },
   hug: { icon: 'heart', title: 'Обнимашки', text: 'Эта кошка любит обниматься. Если она тебя поймает, придётся постоять, а после объятий она оставит ещё шерсти.' },
-  bowl: { icon: 'bowl', title: 'Миска с кормом', text: 'Поставь миску — и кошки побегут есть. Даже самая сонная проснётся и освободит проход. Кнопка: Пробел / E.' },
-  laser: { icon: 'laser', title: 'Лазерная указка', text: 'Зажми кнопку, и красная точка побежит перед тобой. Кошки обожают за ней гоняться. Кнопка: Shift / F.' },
+  bowl: { icon: 'bowl', title: 'Миска с кормом', text: 'Поставь миску — и кошки побегут есть. Даже самая сонная проснётся и освободит проход.', keys: 'Кнопка: Пробел или E.', touch: 'Кнопка с миской — справа внизу.' },
+  laser: { icon: 'laser', title: 'Лазерная указка', text: 'Зажми кнопку, и красная точка побежит перед тобой. Кошки обожают за ней гоняться.', keys: 'Держи Shift или F.', touch: 'Держи кнопку с лазером — справа внизу.' },
   pouf: { icon: 'pouf', title: 'Пуфики', text: 'Пуфик можно подвинуть, если упереться в него. Двигай, чтобы пробраться к шерсти.' },
   ice: { icon: 'ice', title: 'Натёртый паркет', text: 'На блестящем полу сложно остановиться. Рассчитывай разгон и торможение.' },
   robot: { icon: 'robot', title: 'Робот-пылесос', text: 'Робот ездит сам и собирает шерсть. Он упрямый, так что подожди, пока он уступит дорогу.' },
@@ -76,6 +76,7 @@ const add = (def, r) => LEVELS.push(level({ id: LEVELS.length + 1, ...def }, r))
 add({
   world: 1, name: 'Первый комок', par: 35,
   hint: 'Двигайся стрелками или WASD и собери всю шерсть.',
+  hintTouch: 'Води пальцем по левой половине экрана — появится джойстик. Собери всю шерсть!',
 }, room()
   .p(2, 8).put('f', 1, 0).put('f', 20, 0).put('t', 9, 4).put('h', 8, 5).put('h', 12, 5)
   .w([5, 8], [9, 8], [13, 8], [17, 8], [19, 5], [16, 2], [12, 2], [6, 2], [3, 5])
@@ -91,7 +92,7 @@ add({
   .yarn(21, 10));
 
 add({
-  world: 1, name: 'Лабиринт из мебели', par: 55,
+  world: 1, name: 'Лабиринт из мебели', par: 50,
   hint: 'Между мебелью бывают узкие проходы. Не торопись.',
 }, room()
   .p(1, 9).put('k', 1, 0).put('k', 9, 0)
@@ -101,7 +102,7 @@ add({
   .yarn(20, 6));
 
 add({
-  world: 1, name: 'Пушистый ковёр', par: 60, intro: 'rug',
+  world: 1, name: 'Пушистый ковёр', par: 50, intro: 'rug',
   hint: 'Ковёр замедляет, зато шерсть на нём не спрячется.',
 }, room()
   .p(1, 5).rug(5, 2, 10, 7)
@@ -110,7 +111,7 @@ add({
   .yarn(3, 0));
 
 add({
-  world: 1, name: 'Генеральная уборка', par: 65,
+  world: 1, name: 'Генеральная уборка', par: 50,
   hint: 'Большая комната — маршрут решает всё.',
 }, room()
   .p(10, 10).rug(2, 3, 5, 4).rug(14, 5, 5, 4)
@@ -122,7 +123,7 @@ add({
 
 // =====================  МИР 2. СПАЛЬНЯ  =====================
 add({
-  world: 2, name: 'Первая линька', par: 55, intro: 'cat',
+  world: 2, name: 'Первая линька', par: 50, intro: 'cat',
   cats: [{ budget: 4, prowl: false, color: 'orange' }],
   hint: 'Рыжая кошка гуляет и роняет шерсть. Убирай за ней.',
 }, room()
@@ -132,7 +133,7 @@ add({
   .yarn(21, 10));
 
 add({
-  world: 2, name: 'Объятия', par: 60, intro: 'hug',
+  world: 2, name: 'Объятия', par: 40, intro: 'hug',
   cats: [{ budget: 5, prowl: true, color: 'gray' }],
   hint: 'Серая кошка любит обниматься. Обходи её или привыкай к объятиям.',
 }, room()
@@ -142,7 +143,7 @@ add({
   .yarn(21, 0));
 
 add({
-  world: 2, name: 'Миска для сони', par: 75, intro: 'bowl', items: { bowl: true },
+  world: 2, name: 'Миска для сони', par: 45, intro: 'bowl', items: { bowl: true },
   cats: [{ budget: 3, prowl: true, color: 'orange' }], sleepers: [{ color: 'black' }],
   hint: 'Чёрная соня загородила проход. Поставь миску подальше от неё.',
 }, room()
@@ -153,7 +154,7 @@ add({
   .yarn(21, 10));
 
 add({
-  world: 2, name: 'Две кошки', par: 70, items: { bowl: true },
+  world: 2, name: 'Две кошки', par: 50, items: { bowl: true },
   cats: [{ budget: 4, prowl: true, color: 'orange' }, { budget: 3, prowl: true, color: 'white' }],
   hint: 'Миска отвлекает всех кошек сразу. Пока они едят, можно спокойно убирать.',
 }, room()
@@ -163,7 +164,7 @@ add({
   .yarn(21, 10));
 
 add({
-  world: 2, name: 'Ночные гости', par: 90, items: { bowl: true },
+  world: 2, name: 'Ночные гости', par: 50, items: { bowl: true },
   cats: [{ budget: 4, prowl: true, color: 'gray' }, { budget: 3, prowl: false, color: 'white' }],
   sleepers: [{ color: 'black' }],
   hint: 'Клубок спрятан в уголке, который охраняет сонная кошка.',
@@ -177,9 +178,9 @@ add({
 
 // =====================  МИР 3. КУХНЯ  =====================
 add({
-  world: 3, name: 'Лазерная указка', par: 75, intro: 'laser', items: { bowl: true, laser: true },
+  world: 3, name: 'Лазерная указка', par: 60, intro: 'laser', items: { bowl: true, laser: true },
   cats: [{ budget: 4, prowl: true, color: 'orange' }, { budget: 4, prowl: true, color: 'gray' }],
-  hint: 'Зажми Shift или кнопку с лазером, чтобы увести кошек в сторону.',
+  hint: 'Удерживай лазер, чтобы увести кошек в сторону.',
 }, room()
   .p(2, 9).put('C', 1, 0).put('C', 3, 0).put('F', 5, 0).put('C', 6, 0).put('t', 9, 4).put('h', 8, 4).put('h', 12, 4)
   .put('h', 10, 6).put('f', 20, 0).put('f', 20, 10).put('C', 18, 5).cat(15, 5).cat(5, 6)
@@ -187,7 +188,7 @@ add({
   .yarn(21, 5));
 
 add({
-  world: 3, name: 'Пуфики', par: 75, intro: 'pouf', items: { bowl: true, laser: true },
+  world: 3, name: 'Пуфики', par: 65, intro: 'pouf', items: { bowl: true, laser: true },
   cats: [{ budget: 4, prowl: true, color: 'gray' }],
   hint: 'Упрись в пуфик, чтобы подвинуть его, и проход откроется.',
 }, room()
@@ -199,7 +200,7 @@ add({
   .yarn(21, 10));
 
 add({
-  world: 3, name: 'Сонный коридор', par: 85, items: { bowl: true, laser: true },
+  world: 3, name: 'Сонный коридор', par: 50, items: { bowl: true, laser: true },
   cats: [{ budget: 4, prowl: true, color: 'orange' }], sleepers: [{ color: 'gray' }],
   hint: 'Два замка: пуфик и сонная кошка. Открывай по очереди.',
 }, room()
@@ -214,7 +215,7 @@ add({
   .yarn(21, 10));
 
 add({
-  world: 3, name: 'Кухонный лабиринт', par: 90, items: { bowl: true, laser: true },
+  world: 3, name: 'Кухонный лабиринт', par: 55, items: { bowl: true, laser: true },
   cats: [{ budget: 4, prowl: true, color: 'orange' }],
   hint: 'Две змейки коридоров. Пуфики стоят на самых узких местах.',
 }, room()
@@ -228,7 +229,7 @@ add({
   .yarn(21, 10));
 
 add({
-  world: 3, name: 'Обед для котов', par: 100, items: { bowl: true, laser: true },
+  world: 3, name: 'Обед для котов', par: 80, items: { bowl: true, laser: true },
   cats: [
     { budget: 3, prowl: true, color: 'orange' }, { budget: 3, prowl: true, color: 'gray' }, { budget: 3, prowl: false, color: 'white' },
   ], sleepers: [{ color: 'black' }],
@@ -245,7 +246,7 @@ add({
 
 // =====================  МИР 4. КАБИНЕТ  =====================
 add({
-  world: 4, name: 'Скользкий пол', par: 75, intro: 'ice',
+  world: 4, name: 'Скользкий пол', par: 55, intro: 'ice',
   hint: 'Тормози заранее и пользуйся стенами и мебелью, как упорами.',
 }, room()
   .p(2, 9).put('k', 1, 0).put('k', 6, 0).put('D', 15, 0).put('f', 19, 0).ice(4, 3, 14, 5).put('f', 10, 5).put('f', 14, 6)
@@ -253,7 +254,7 @@ add({
   .yarn(21, 0));
 
 add({
-  world: 4, name: 'Робот-помощник', par: 60, intro: 'robot',
+  world: 4, name: 'Робот-помощник', par: 40, intro: 'robot',
   hint: 'Робот собирает шерсть по пути. Если он перегородил проход, обойди.',
 }, room()
   .p(2, 9).put('k', 1, 0).put('D', 8, 0).put('k', 14, 0).put('h', 9, 2).put('s', 14, 6).put('l', 20, 3).put('f', 20, 10)
@@ -262,7 +263,7 @@ add({
   .yarn(21, 0));
 
 add({
-  world: 4, name: 'Турбо-пылесос', par: 85, intro: 'turbo',
+  world: 4, name: 'Турбо-пылесос', par: 60, intro: 'turbo',
   cats: [{ budget: 4, prowl: false, color: 'white' }],
   hint: 'Батарейка даёт ускорение и притягивает шерсть издалека. Спеши!',
 }, room()
@@ -273,7 +274,7 @@ add({
   .yarn(21, 10));
 
 add({
-  world: 4, name: 'Ледяные коридоры', par: 105, items: { bowl: true, laser: true },
+  world: 4, name: 'Ледяные коридоры', par: 80, items: { bowl: true, laser: true },
   cats: [{ budget: 4, prowl: true, color: 'orange' }],
   hint: 'Змейка из ледяных коридоров. Робот ездит, кошка охотится.',
 }, room()
@@ -285,7 +286,7 @@ add({
   .yarn(21, 0));
 
 add({
-  world: 4, name: 'Кабинет директора', par: 95, items: { bowl: true, laser: true },
+  world: 4, name: 'Кабинет директора', par: 60, items: { bowl: true, laser: true },
   cats: [{ budget: 3, prowl: true, color: 'orange' }, { budget: 3, prowl: false, color: 'white' }],
   sleepers: [{ color: 'gray' }],
   hint: 'Всё вместе: лёд, робот, кошки и сонная охрана клубка.',
@@ -300,7 +301,7 @@ add({
 
 // =====================  МИР 5. ОСОБНЯК  =====================
 add({
-  world: 5, name: 'Парадная зала', par: 85, items: { bowl: true, laser: true },
+  world: 5, name: 'Парадная зала', par: 60, items: { bowl: true, laser: true },
   cats: [
     { budget: 3, prowl: true, color: 'black' }, { budget: 3, prowl: true, color: 'orange' }, { budget: 3, prowl: true, color: 'gray' },
   ],
@@ -313,7 +314,7 @@ add({
   .yarn(21, 5));
 
 add({
-  world: 5, name: 'Библиотека', par: 95, items: { bowl: true, laser: true },
+  world: 5, name: 'Библиотека', par: 75, items: { bowl: true, laser: true },
   cats: [{ budget: 3, prowl: true, color: 'gray' }, { budget: 3, prowl: false, color: 'white' }],
   sleepers: [{ color: 'black' }],
   hint: 'Между стеллажами узко. Один пуфик, один замок из сони.',
@@ -329,7 +330,7 @@ add({
   .yarn(21, 6));
 
 add({
-  world: 5, name: 'Бальный зал', par: 135, items: { bowl: true, laser: true },
+  world: 5, name: 'Бальный зал', par: 80, items: { bowl: true, laser: true },
   cats: [{ budget: 4, prowl: true, color: 'black' }, { budget: 4, prowl: true, color: 'white' }],
   hint: 'Весь зал натёрт до блеска. Колонны можно использовать как упоры.',
 }, room()
@@ -340,7 +341,7 @@ add({
   .yarn(21, 0));
 
 add({
-  world: 5, name: 'Чердак', par: 100, items: { bowl: true, laser: true },
+  world: 5, name: 'Чердак', par: 85, items: { bowl: true, laser: true },
   cats: [{ budget: 3, prowl: true, color: 'orange' }, { budget: 3, prowl: true, color: 'gray' }],
   sleepers: [{ color: 'black' }],
   hint: 'Тесные закоулки, пуфики и сонная кошка у чердачного окошка.',
@@ -355,7 +356,7 @@ add({
   .yarn(21, 0));
 
 add({
-  world: 5, name: 'Лапка', par: 125, intro: 'boss', items: { bowl: true, laser: true },
+  world: 5, name: 'Лапка', par: 90, intro: 'boss', items: { bowl: true, laser: true },
   cats: [{ budget: 3, prowl: true, color: 'gray' }, { budget: 3, prowl: true, color: 'white' }],
   boss: { waves: 4, per: 8, interval: 9, first: 6 },
   hint: 'Лапка встряхивается всё сильнее. Не зевай и пользуйся турбо!',

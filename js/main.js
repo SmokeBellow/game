@@ -384,8 +384,12 @@ function startLevel(id) {
     state.overlay = true;
     setTimeout(() => openIntro(def.intro, w.theme), 900);
   } else if (def.hint) {
-    setTimeout(() => toast(def.hint), 2600);
+    setTimeout(() => toast(hintFor(def)), 2600);
   }
+}
+
+function hintFor(def) {
+  return document.body.classList.contains('touch') && def.hintTouch ? def.hintTouch : def.hint;
 }
 
 function openIntro(key, theme) {
@@ -393,7 +397,8 @@ function openIntro(key, theme) {
   if (!it) { state.overlay = false; return; }
   $('#intro-icon').src = art.icon(it.icon, theme).toDataURL();
   $('#intro-title').textContent = it.title;
-  $('#intro-text').textContent = it.text;
+  const touch = document.body.classList.contains('touch');
+  $('#intro-text').textContent = it.text + (it.keys ? ` ${touch ? it.touch : it.keys}` : '');
   $('#ov-intro').classList.add('on');
   state.overlay = true;
   state.introKey = key;
@@ -407,7 +412,7 @@ function closeIntro() {
   if (state.introKey) { d.seen[state.introKey] = true; store.save(); state.introKey = null; }
   input.clearEdges();
   const def = LEVELS[state.levelId - 1];
-  if (def.hint) setTimeout(() => toast(def.hint), 400);
+  if (def.hint) setTimeout(() => toast(hintFor(def)), 400);
 }
 $('#intro-ok').onclick = () => { sound.click(); closeIntro(); };
 
@@ -446,7 +451,10 @@ function showWin() {
   const newHat = HATS.find((h) => h.stars > starsBefore && h.stars <= starsAfter);
   renderer.confetti(36);
   sound.setDuck(0.6);
-  $('#win-title').textContent = LEVEL_PHRASES[(state.levelId * 7 + Math.floor(Math.random() * 3)) % LEVEL_PHRASES.length];
+  const worldDone = state.levelId % 5 === 0 && state.levelId < LEVELS.length;
+  $('#win-title').textContent = worldDone
+    ? `Мир «${WORLDS[LEVELS[state.levelId - 1].world - 1].name}» убран!`
+    : LEVEL_PHRASES[(state.levelId * 7 + Math.floor(Math.random() * 3)) % LEVEL_PHRASES.length];
   const lines = [
     { ok: res.stars[0], text: 'Комната убрана' },
     { ok: res.stars[1], text: `Быстрее ${fmtTime(res.par)} (у тебя ${fmtTime(res.time)})` },

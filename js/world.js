@@ -407,6 +407,7 @@ export class World {
     b.anim += dt;
     if (b.waves <= 0) { b.state = 'sleep'; return; }
     if (b.state === 'sleep') {
+      if (this.remainingWool() === 0 && b.timer > 2) b.timer = 2;
       b.timer -= dt;
       if (b.timer <= 0) { b.state = 'warn'; b.warnT = 1.3; this.ev.push({ t: 'bossWarn' }); }
     } else if (b.state === 'warn') {

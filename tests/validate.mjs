@@ -169,6 +169,7 @@ function botPlay(def, seed = 0) {
         if (sleeper && !w.avail.bowl && w.avail.laser && Math.hypot(ptx - sleeper.htx, pty - sleeper.hty) < 8) inp.laser = true;
       }
     }
+    if (args.includes('--casual')) { inp.x *= 0.62; inp.y *= 0.62; }
     w.update(dt, inp);
     w.ev.length = 0;
     // застревание

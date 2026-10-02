@@ -132,6 +132,8 @@ export function updateCat(w, c, dt) {
   // линька: шерсть падает, пока кот не занят
   const sheds = c.state !== 'hug' && c.state !== 'eat';
   if (sheds && c.budget > 0) {
+    // когда вся шерсть на полу уже убрана, коты торопятся — не заставляем ждать
+    if (w.remainingWool() === 0 && c.shedT > 0.9) c.shedT = 0.9;
     c.shedT -= dt;
     if (c.shedT <= 0) {
       shed(w, c, 1);
@@ -201,6 +203,9 @@ export function updateCat(w, c, dt) {
       c.moving = false;
       if (c.hugT <= 0) {
         shed(w, c, Math.min(2, c.budget));
+        // объятия — это ещё и лишняя работа: кошка оставляет добавку шерсти
+        w.addWool(c.x + range(w.rng, -6, 6), c.y - 3 + range(w.rng, -1, 3));
+        w.total++;
         c.hugCd = 9;
         w.ev.push({ t: 'meow', x: c.x, y: c.y, kind: 'happy' });
         startIdle(c, w, 0.2, 0.6);
