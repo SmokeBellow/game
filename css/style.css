@@ -63,9 +63,10 @@ img { -webkit-user-drag: none; }
 
 /* ---------- 2. «шерстины» ---------- */
 #scr-title { background: #fff; color: #000; transition: opacity 1s; }
-.title-box { text-align: center; }
+.title-box { text-align: center; display: flex; flex-direction: column; align-items: center; }
 .title-box h1 { font: 700 clamp(20px, 5.4vmin, 44px) Arial, sans-serif; margin: 0 0 3vmin; }
-#sherstiny-text { margin: 0; font-size: clamp(36px, 15vmin, 130px); font-weight: bold; font-family: Arial, sans-serif; }
+/* высота слова фиксирована: у разных шрифтов разная высота строки, и без этого верхняя надпись «прыгает» */
+#sherstiny-text { margin: 0; font-size: clamp(36px, 15vmin, 130px); font-weight: bold; font-family: Arial, sans-serif; height: 1.4em; line-height: 1; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
 
 /* ---------- 3. меню ---------- */
 .menu-box { display: flex; flex-direction: column; align-items: center; gap: 3.2vmin; text-align: center; }
@@ -260,13 +261,3 @@ body.touch #toast { bottom: calc(var(--u) * 30); }
 #ach-toast b { font: 800 calc(var(--u) * 4.4) var(--ui); }
 .win-ach { font: 800 calc(var(--u) * 3.8)/1.3 var(--ui); color: #b8620a; max-width: calc(var(--u) * 130); }
 .win-ach:empty { display: none; }
-.cheat { width: 100%; font: 700 calc(var(--u) * 3.6) var(--ui); color: var(--brown2); text-align: left; }
-.cheat summary { cursor: pointer; list-style: none; text-align: center; opacity: .75; }
-.cheat summary::-webkit-details-marker { display: none; }
-.cheat-row { display: flex; gap: calc(var(--u) * 2); margin-top: calc(var(--u) * 2); }
-.cheat-row input { flex: 1; min-width: 0; font: 700 calc(var(--u) * 4.2) var(--ui); padding: calc(var(--u) * 2) calc(var(--u) * 3); border: calc(var(--u) * .6) solid var(--cream2); border-radius: calc(var(--u) * 2.4); background: #fff; color: var(--brown); user-select: text; -webkit-user-select: text; }
-.cheat-row .btn { width: auto !important; padding: 0 calc(var(--u) * 4); }
-#cheat-msg { min-height: calc(var(--u) * 4); margin-top: calc(var(--u) * 1.4); text-align: center; }
-#cheat-msg.bad { color: var(--coral-d); }
-@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-.shake { animation: shake .3s; }

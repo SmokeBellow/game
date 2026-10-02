@@ -512,40 +512,24 @@ $('#vol-sfx').oninput = (e) => {
 };
 $('#vol-sfx').onchange = () => sound.collect(1);
 
-// ---- секретный код: засчитывает комнату сразу (без звёзд за скорость и клубок, без достижений)
-const CHEAT_WORDS = new Set(['мурмяк', 'murmyak']);
-const CHEAT_KEYS = ['iddqd', 'шввйв']; // набирается прямо во время игры
-const normCode = (v) => v.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]/g, '');
-
+// ---- секретный код: Ctrl + Shift + P прямо в игре засчитывает комнату
+// (одна звезда, без звёзд за скорость и клубок, без счётчиков и достижений, кроме секретного)
 function applyCheat() {
   const w = state.world;
-  if (!w || w.state !== 'play') return false;
+  if (!w || w.state !== 'play' || state.overlay) return false;
+  if (state.paused) setPause(false);
+  input.clearEdges();
   w.cheatWin();
   toast('Секретный код принят!', 2500);
   return true;
 }
 
-function submitCheat() {
-  const inp = $('#cheat-input');
-  const msg = $('#cheat-msg');
-  if (CHEAT_WORDS.has(normCode(inp.value))) {
-    inp.value = ''; msg.textContent = ''; inp.blur();
-    setPause(false);
-    applyCheat();
-  } else {
-    msg.textContent = 'Нет такого кода'; msg.className = 'bad';
-    inp.classList.remove('shake'); void inp.offsetWidth; inp.classList.add('shake');
-  }
-}
-$('#cheat-ok').onclick = () => { sound.click(); submitCheat(); };
-$('#cheat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitCheat(); e.stopPropagation(); });
-$('#cheat-input').addEventListener('input', () => { $('#cheat-msg').textContent = ''; });
-
-let keyBuf = '';
 window.addEventListener('keydown', (e) => {
-  if (state.mode !== 'game' || state.paused || state.overlay || e.target.tagName === 'INPUT' || e.key.length !== 1) return;
-  keyBuf = (keyBuf + e.key.toLowerCase()).slice(-8);
-  if (CHEAT_KEYS.some((k) => keyBuf.endsWith(k))) { keyBuf = ''; applyCheat(); }
+  if (state.mode !== 'game' || e.repeat) return;
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.code === 'KeyP') {
+    e.preventDefault();
+    applyCheat();
+  }
 });
 
 // ---- результаты

@@ -23,6 +23,7 @@ export class Input {
       if (e.repeat) return;
       this.keys.add(e.code);
       if (!this.enabled) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return; // служебные сочетания (в том числе секретный код)
       if (e.code === 'Space' || e.code === 'KeyE') this.edge.bowl = true;
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight' || e.code === 'KeyF') this.edge.laserToggle = true;
       if (e.code === 'Escape' || e.code === 'KeyP') this.edge.pause = true;
